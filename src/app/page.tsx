@@ -181,7 +181,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border bg-background-secondary py-12">
         <div className="max-w-7xl mx-auto px-6 text-center text-foreground-tertiary">
-          <p>© 2024 SafeHelm. All rights reserved. Mining Safety Matters.</p>
+          <p>© 2026 SafeHelm. All rights reserved. Mining Safety Matters.</p>
         </div>
       </footer>
     </div>

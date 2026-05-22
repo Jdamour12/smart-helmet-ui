@@ -52,13 +52,9 @@ export default function LoginPage() {
         {/* Quote and branding */}
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <div className="space-y-6">
-            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary-foreground">SH</span>
-            </div>
-            <p className="text-white text-xl font-semibold leading-relaxed max-w-md">
+            <p className="text-white text-xl font-semibold leading-relaxed max-w-lg">
               "Safety is not just a priority, it's our commitment. Real-time monitoring, instant alerts, lives protected."
             </p>
-            <p className="text-white/70 text-sm">SafeHelm Mining Safety System</p>
           </div>
         </div>
       </div>
@@ -68,7 +64,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8">
           {/* Header */}
           <div className="text-center space-y-3">
-            <h1 className="text-4xl font-bold text-foreground">SafeHelm</h1>
+            <h1 className="text-4xl font-bold text-foreground">SmartHelmet</h1>
             <p className="text-foreground-secondary text-lg">Mining Safety Helmet Monitoring</p>
           </div>
 
@@ -181,11 +177,6 @@ export default function LoginPage() {
               <p><span className="font-medium">Admin:</span> admin@safehelm.com / password</p>
             </div>
           </div>
-
-          {/* Footer */}
-          <p className="text-center text-sm text-foreground-tertiary">
-            SafeHelm © 2024. All rights reserved.
-          </p>
         </div>
       </div>
     </div>
