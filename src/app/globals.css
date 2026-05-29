@@ -21,6 +21,7 @@
   --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
+  --axis-stroke: var(--muted-foreground);
   --accent: #ea580c;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
@@ -102,6 +103,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

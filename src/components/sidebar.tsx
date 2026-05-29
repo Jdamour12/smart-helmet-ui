@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   BarChart3,
   Wifi,
-  Settings,
   X,
 } from 'lucide-react';
 
@@ -22,7 +21,6 @@ const navItems = [
   { href: '/dashboard/impacts', label: 'Impact Detection', icon: AlertTriangle },
   { href: '/dashboard/compliance', label: 'Compliance Reports', icon: BarChart3 },
   { href: '/dashboard/network', label: 'Network Status', icon: Wifi },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
 interface SidebarProps {

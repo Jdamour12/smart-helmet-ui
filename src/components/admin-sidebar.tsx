@@ -9,7 +9,6 @@ import {
   BarChart3,
   AlertCircle,
   Wifi,
-  Settings,
   FileText,
   X,
 } from 'lucide-react';
@@ -22,7 +21,6 @@ const adminNavItems = [
   { href: '/admin/alerts', label: 'Manage Alerts', icon: AlertCircle },
   { href: '/admin/gateways', label: 'Manage Gateways', icon: Wifi },
   { href: '/admin/reports', label: 'Reports & Audit Logs', icon: FileText },
-  { href: '/admin/settings', label: 'System Settings', icon: Settings },
 ];
 
 interface AdminSidebarProps {
@@ -47,10 +45,10 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0 lg:static lg:z-0`}
       >
-        <div className="p-5 border-b border-sidebar-border flex items-center justify-between">
+        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-critical rounded flex items-center justify-center">
-              <span className="text-xs font-bold text-white">A</span>
+            <div className="w-5 h-5 bg-critical rounded flex items-center justify-center">
+              <span className="text-[10px] font-bold text-white">A</span>
             </div>
             <h2 className="text-sm font-semibold text-foreground">Admin</h2>
           </div>
