@@ -143,11 +143,11 @@ export default function AnalyticsPage() {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #e2e8f0",
+                  backgroundColor: "var(--background-secondary)",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
                 }}
-                labelStyle={{ color: "#0f172a" }}
+                labelStyle={{ color: "var(--foreground)" }}
               />
             </PieChart>
           </ResponsiveContainer>

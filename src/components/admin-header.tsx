@@ -1,20 +1,35 @@
-'use client';
+"use client";
 
-import { Menu, Shield, Bell, User, Settings, HelpCircle, LogOut } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { mockAlerts } from '@/lib/mock-data';
+import {
+  Menu,
+  Shield,
+  Bell,
+  User,
+  Settings,
+  HelpCircle,
+  LogOut,
+} from "lucide-react";
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { mockAlerts } from "@/lib/mock-data";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-
-const unreadCount = mockAlerts.filter((a) => !a.resolved).length;
+} from "@/components/ui/dropdown-menu";
 
 export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter();
+  const unreadCount = useMemo(
+    () => mockAlerts.filter((a) => !a.resolved).length,
+    [mockAlerts],
+  );
+
+  const handleOpenProfile = () => router.push("/admin/profile");
+  const handleOpenHelp = () => router.push("/docs");
+  const handleLogout = () => router.push("/login");
 
   return (
     <header className="sticky top-0 z-40 bg-background-secondary border-b border-border px-5 py-4 flex items-center justify-between">
@@ -44,7 +59,7 @@ export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
           <Bell className="w-5 h-5 text-foreground-secondary" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-critical rounded-full flex items-center justify-center text-[10px] font-bold text-white px-0.5 leading-none">
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </button>
@@ -53,36 +68,56 @@ export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="w-9 h-9 bg-critical rounded-full flex items-center justify-center hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-critical/40">
-              <span className="text-sm font-bold text-white select-none">AU</span>
+              <span className="text-sm font-bold text-white select-none">
+                AU
+              </span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
             className="w-56"
-            style={{ '--accent': 'var(--sidebar-accent)', '--accent-foreground': 'var(--sidebar-foreground)' } as React.CSSProperties}
+            style={
+              {
+                "--accent": "var(--sidebar-accent)",
+                "--accent-foreground": "var(--sidebar-foreground)",
+              } as React.CSSProperties
+            }
           >
             <div className="px-3 py-3">
-              <p className="font-semibold text-foreground text-sm">Admin User</p>
-              <p className="text-xs text-foreground-tertiary mt-0.5">admin@safehelm.io</p>
+              <p className="font-semibold text-foreground text-sm">
+                Admin User
+              </p>
+              <p className="text-xs text-foreground-tertiary mt-0.5">
+                admin@safehelm.io
+              </p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2.5 cursor-pointer">
+            <DropdownMenuItem
+              className="gap-2.5 cursor-pointer"
+              onClick={handleOpenProfile}
+            >
               <User className="w-4 h-4 text-foreground-secondary" />
               Profile
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2.5 cursor-pointer"
-              onClick={() => router.push('/admin/settings')}
+              onClick={() => router.push("/admin/settings")}
             >
               <Settings className="w-4 h-4 text-foreground-secondary" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2.5 cursor-pointer">
+            <DropdownMenuItem
+              className="gap-2.5 cursor-pointer"
+              onClick={handleOpenHelp}
+            >
               <HelpCircle className="w-4 h-4 text-foreground-secondary" />
               Help
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2.5 cursor-pointer text-critical focus:text-critical focus:bg-critical/10">
+            <DropdownMenuItem
+              className="gap-2.5 cursor-pointer text-critical focus:text-critical focus:bg-critical/10"
+              onClick={handleLogout}
+            >
               <LogOut className="w-4 h-4" />
               Log out
             </DropdownMenuItem>
