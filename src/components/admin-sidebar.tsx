@@ -43,11 +43,11 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       )}
 
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-background border-r border-border flex flex-col transition-transform duration-300 z-40 ${
+        className={`fixed left-0 top-0 h-screen w-64 bg-sidebar flex flex-col transition-transform duration-300 z-40 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0 lg:static lg:z-0`}
       >
-        <div className="p-6 border-b border-border flex items-center justify-between">
+        <div className="p-5 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-critical rounded flex items-center justify-center">
               <span className="text-xs font-bold text-white">A</span>
@@ -56,7 +56,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           </div>
           <button
             onClick={onClose}
-            className="lg:hidden p-1 hover:bg-background-secondary rounded transition-colors"
+            className="lg:hidden p-1 hover:bg-sidebar-accent rounded transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -73,8 +73,8 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 onClick={onClose}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
-                    ? 'bg-critical/10 text-critical font-medium'
-                    : 'text-foreground-secondary hover:bg-background-secondary hover:text-foreground'
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-foreground-secondary hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -84,7 +84,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-sidebar-border">
           <div className="text-xs text-foreground-tertiary">
             <p className="font-medium text-foreground-secondary">Admin Portal</p>
             <p className="mt-1 flex items-center gap-2">

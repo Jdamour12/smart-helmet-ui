@@ -2,7 +2,7 @@
 
 import { impactData, mockHelmets } from '@/lib/mock-data';
 import { AlertTriangle, Shield, TrendingDown, Heart } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function ImpactDetection() {
   const helmetWithImpacts = mockHelmets.filter(h => h.impactDetected).length;
@@ -81,12 +81,11 @@ export default function ImpactDetection() {
         <h3 className="text-lg font-semibold text-foreground mb-4">Impact Events (Weekly Trend)</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={impactData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="name" stroke="#cbd5e1" />
-            <YAxis stroke="#cbd5e1" />
-            <Tooltip 
-              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-              labelStyle={{ color: '#f1f5f9' }}
+            <XAxis dataKey="name" stroke="#94a3b8" />
+            <YAxis stroke="#94a3b8" />
+            <Tooltip
+              contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+              labelStyle={{ color: '#0f172a' }}
             />
             <Legend />
             <Bar dataKey="value" fill="#ef4444" radius={[8, 8, 0, 0]} name="Incidents" />

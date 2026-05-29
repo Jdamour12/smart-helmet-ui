@@ -494,26 +494,6 @@ export const mockAuditLogs = [
     details: 'Supervisor account deactivated due to inactivity',
     severity: 'warning',
   },
-  {
-    id: 'LOG-004',
-    action: 'Gateway Offline',
-    target: 'GW-003',
-    targetName: 'East Tunnel Gateway',
-    user: 'System',
-    timestamp: new Date(Date.now() - 7200000),
-    details: 'Gateway connection lost - No heartbeat received',
-    severity: 'critical',
-  },
-  {
-    id: 'LOG-005',
-    action: 'System Settings Updated',
-    target: 'SYSTEM',
-    targetName: 'System Configuration',
-    user: 'Admin',
-    timestamp: new Date(Date.now() - 10800000),
-    details: 'Alert thresholds updated for CO and CH4 levels',
-    severity: 'info',
-  },
 ];
 
 export const adminSystemStats = {

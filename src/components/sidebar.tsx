@@ -45,16 +45,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-background border-r border-border flex flex-col transition-transform duration-300 z-40 ${
+        className={`fixed left-0 top-0 h-screen w-64 bg-sidebar flex flex-col transition-transform duration-300 z-40 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0 lg:static lg:z-0`}
       >
         {/* Header */}
-        <div className="p-6 border-b border-border flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Monitoring</h2>
+        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-sidebar-foreground">Monitoring</h2>
           <button
             onClick={onClose}
-            className="lg:hidden p-1 hover:bg-background-secondary rounded transition-colors"
+            className="lg:hidden p-1 hover:bg-sidebar-accent rounded transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -73,7 +73,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
                     ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-foreground-secondary hover:bg-background-secondary hover:text-foreground'
+                    : 'text-foreground-secondary hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -84,7 +84,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-sidebar-border">
           <div className="text-xs text-foreground-tertiary">
             <p className="font-medium text-foreground-secondary">System Status</p>
             <p className="mt-1 flex items-center gap-2">

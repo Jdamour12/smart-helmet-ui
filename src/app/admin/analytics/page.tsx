@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { adminSystemStats } from '@/lib/mock-data';
 
 const systemUsageData = [
@@ -62,12 +62,11 @@ export default function AnalyticsPage() {
           <h3 className="text-lg font-semibold text-foreground mb-4">System Usage (Weekly)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={systemUsageData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#cbd5e1" />
-              <YAxis stroke="#cbd5e1" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f1f5f9' }}
+              <XAxis dataKey="name" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                labelStyle={{ color: '#0f172a' }}
               />
               <Legend />
               <Line type="monotone" dataKey="helmets" stroke="#0ea5e9" strokeWidth={2} name="Helmets" />
@@ -94,9 +93,9 @@ export default function AnalyticsPage() {
                   <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                 ))}
               </Pie>
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f1f5f9' }}
+              <Tooltip
+                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                labelStyle={{ color: '#0f172a' }}
               />
             </PieChart>
           </ResponsiveContainer>

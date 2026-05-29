@@ -1,7 +1,7 @@
 'use client';
 
 import { gasLevelData, mockHelmets } from '@/lib/mock-data';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const coDistribution = [
   { range: '0-10 ppm', count: 3, percentage: 50 },
@@ -55,12 +55,11 @@ export default function GasAnalytics() {
           <h3 className="text-lg font-semibold text-foreground mb-4">CO Level Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={coDistribution}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="range" stroke="#cbd5e1" />
-              <YAxis stroke="#cbd5e1" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f1f5f9' }}
+              <XAxis dataKey="range" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                labelStyle={{ color: '#0f172a' }}
               />
               <Bar dataKey="count" fill="#ef4444" radius={[8, 8, 0, 0]} name="Helmets" />
             </BarChart>
@@ -72,12 +71,11 @@ export default function GasAnalytics() {
           <h3 className="text-lg font-semibold text-foreground mb-4">CH4 Level Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={ch4Distribution}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="range" stroke="#cbd5e1" />
-              <YAxis stroke="#cbd5e1" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f1f5f9' }}
+              <XAxis dataKey="range" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                labelStyle={{ color: '#0f172a' }}
               />
               <Bar dataKey="count" fill="#f59e0b" radius={[8, 8, 0, 0]} name="Helmets" />
             </BarChart>

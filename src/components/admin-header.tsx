@@ -4,7 +4,7 @@ import { Menu, Shield } from 'lucide-react';
 
 export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
   return (
-    <header className="sticky top-0 z-40 bg-background-secondary border-b border-border px-6 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-background-secondary border-b border-border px-5 py-4 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuClick}
@@ -21,9 +21,6 @@ export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
             <h1 className="text-lg font-semibold text-foreground hidden sm:block">
               Admin Portal
             </h1>
-            <p className="text-xs text-foreground-tertiary hidden sm:block">
-              SafeHelm System Administration
-            </p>
           </div>
         </div>
       </div>

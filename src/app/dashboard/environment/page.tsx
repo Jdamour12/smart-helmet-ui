@@ -2,7 +2,7 @@
 
 import { temperatureData, humidityData, mockHelmets } from '@/lib/mock-data';
 import { Thermometer, Droplets, Gauge, AlertTriangle } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function EnvironmentAnalytics() {
   const avgTemp = (mockHelmets.reduce((sum, h) => sum + h.temperature, 0) / mockHelmets.length).toFixed(1);
@@ -83,12 +83,11 @@ export default function EnvironmentAnalytics() {
           <h3 className="text-lg font-semibold text-foreground mb-4">Temperature Trend (24h)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={temperatureData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#cbd5e1" />
-              <YAxis stroke="#cbd5e1" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f1f5f9' }}
+              <XAxis dataKey="name" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                labelStyle={{ color: '#0f172a' }}
               />
               <Legend />
               <Line 
@@ -108,12 +107,11 @@ export default function EnvironmentAnalytics() {
           <h3 className="text-lg font-semibold text-foreground mb-4">Humidity Trend (24h)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={humidityData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#cbd5e1" />
-              <YAxis stroke="#cbd5e1" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f1f5f9' }}
+              <XAxis dataKey="name" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                labelStyle={{ color: '#0f172a' }}
               />
               <Legend />
               <Line 

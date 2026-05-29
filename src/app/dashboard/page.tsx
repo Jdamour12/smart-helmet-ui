@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Users, Zap, TrendingUp } from 'lucide-react';
 import { mockSystemStats, mockAlerts, alertTrendData, gasLevelData } from '@/lib/mock-data';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
   return (
@@ -79,12 +79,11 @@ export default function Dashboard() {
           <h3 className="text-lg font-semibold text-foreground mb-4">Alert Trends (24h)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={alertTrendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#cbd5e1" />
-              <YAxis stroke="#cbd5e1" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f1f5f9' }}
+              <XAxis dataKey="name" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                labelStyle={{ color: '#0f172a' }}
               />
               <Legend />
               <Line 
@@ -105,12 +104,11 @@ export default function Dashboard() {
           <h3 className="text-lg font-semibold text-foreground mb-4">Gas Levels Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={gasLevelData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#cbd5e1" angle={-45} textAnchor="end" height={80} />
-              <YAxis stroke="#cbd5e1" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f1f5f9' }}
+              <XAxis dataKey="name" stroke="#94a3b8" angle={-45} textAnchor="end" height={80} />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                labelStyle={{ color: '#0f172a' }}
               />
               <Bar dataKey="value" fill="#0ea5e9" radius={[8, 8, 0, 0]} name="Helmets" />
             </BarChart>
