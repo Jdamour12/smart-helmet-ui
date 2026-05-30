@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -62,6 +62,15 @@ export default function LoginPage() {
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 lg:py-0">
         <div className="w-full max-w-md space-y-8">
+          {/* Back to Home */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-foreground-secondary hover:text-primary transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+
           {/* Header */}
           <div className="text-center space-y-3">
             <h1 className="text-4xl font-bold text-foreground">SmartHelmet</h1>
