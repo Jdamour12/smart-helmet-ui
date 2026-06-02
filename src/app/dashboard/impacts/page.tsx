@@ -132,7 +132,7 @@ export default function ImpactDetection() {
             <Legend />
             <Bar
               dataKey="value"
-              fill="#ef4444"
+              fill="#f97316"
               radius={[8, 8, 0, 0]}
               name="Incidents"
             />
@@ -156,9 +156,6 @@ export default function ImpactDetection() {
                   <th className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">
                     Impact Status
                   </th>
-                  <th className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">
-                    Action Required
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -176,11 +173,6 @@ export default function ImpactDetection() {
                           <span className="text-xs px-2 py-1 rounded font-medium bg-critical/10 text-critical">
                             Impact Detected
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <button className="text-xs px-3 py-1 rounded font-medium bg-critical/20 text-critical hover:bg-critical/30 transition-colors">
-                            Respond Now
-                          </button>
                         </td>
                       </tr>
                     ),

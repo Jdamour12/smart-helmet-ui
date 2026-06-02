@@ -161,9 +161,6 @@ export default function ComplianceReports() {
                   <th className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">
                     Helmet Status
                   </th>
-                  <th className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">
-                    Action
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -181,11 +178,6 @@ export default function ComplianceReports() {
                           <span className="text-xs px-2 py-1 rounded font-medium bg-warning/10 text-warning">
                             Not Wearing
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <button className="text-xs px-3 py-1 rounded font-medium bg-warning/20 text-warning hover:bg-warning/30 transition-colors">
-                            Remind Worker
-                          </button>
                         </td>
                       </tr>
                     ),
