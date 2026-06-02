@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Menu,
-  Shield,
-  Bell,
-  User,
-  Settings,
-  HelpCircle,
-  LogOut,
-} from "lucide-react";
+import { Menu, Shield, Bell, User, LogOut } from "lucide-react";
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { mockAlerts } from "@/lib/mock-data";
@@ -28,7 +20,6 @@ export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
   );
 
   const handleOpenProfile = () => router.push("/admin/profile");
-  const handleOpenHelp = () => router.push("/docs");
   const handleLogout = () => router.push("/login");
 
   return (
@@ -98,20 +89,6 @@ export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
             >
               <User className="w-4 h-4 text-foreground-secondary" />
               Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="gap-2.5 cursor-pointer"
-              onClick={() => router.push("/admin/settings")}
-            >
-              <Settings className="w-4 h-4 text-foreground-secondary" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="gap-2.5 cursor-pointer"
-              onClick={handleOpenHelp}
-            >
-              <HelpCircle className="w-4 h-4 text-foreground-secondary" />
-              Help
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
