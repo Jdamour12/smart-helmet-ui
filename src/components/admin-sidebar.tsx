@@ -16,7 +16,7 @@ import {
 const adminNavItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/supervisors', label: 'Manage Supervisors', icon: Users },
-  { href: '/admin/workers', label: 'Manage Workers', icon: UserCheck },
+  { href: '/admin/workers', label: 'Workers', icon: UserCheck },
   { href: '/admin/analytics', label: 'System Analytics', icon: BarChart3 },
   { href: '/admin/alerts', label: 'Manage Alerts', icon: AlertCircle },
   { href: '/admin/gateways', label: 'Manage Gateways', icon: Wifi },
