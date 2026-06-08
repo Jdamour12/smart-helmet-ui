@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { Eye, X, Mail, Phone, Briefcase, User, Users, Calendar, HardHat, ChevronRight } from 'lucide-react';
-import { mockWorkers, adminSystemStats } from '@/lib/mock-data';
-
-type Worker = typeof mockWorkers[number];
+import { useState, useEffect } from 'react';
+import { Eye, X, Mail, Phone, Briefcase, Users, Calendar, HardHat, Wifi } from 'lucide-react';
+import { workers as workersApi } from '@/lib/api';
+import type { Worker } from '@/lib/api';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -48,7 +47,7 @@ function ViewWorkerDrawer({ worker, onClose }: { worker: Worker | null; onClose:
                     worker.status === 'active' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${worker.status === 'active' ? 'bg-success' : 'bg-warning'}`} />
-                    {worker.status.charAt(0).toUpperCase() + worker.status.slice(1)}
+                    {(worker.status ?? 'inactive').charAt(0).toUpperCase() + (worker.status ?? 'inactive').slice(1)}
                   </span>
                 </div>
               </div>
@@ -96,43 +95,40 @@ function ViewWorkerDrawer({ worker, onClose }: { worker: Worker | null; onClose:
                   <Briefcase className="w-4 h-4 text-foreground-secondary" />
                   <span className="text-xs font-semibold text-foreground-secondary">Department</span>
                 </div>
-                <p className="text-lg font-bold text-foreground">{worker.department}</p>
+                <p className="text-lg font-bold text-foreground">{worker.department || '—'}</p>
               </div>
               <div className="p-5 rounded-2xl border border-border bg-background">
                 <div className="flex items-center gap-2 mb-3">
                   <HardHat className="w-4 h-4 text-foreground-secondary" />
-                  <span className="text-xs font-semibold text-foreground-secondary">Helmets</span>
+                  <span className="text-xs font-semibold text-foreground-secondary">Status</span>
                 </div>
-                <p className="text-4xl font-bold text-foreground">{worker.helmets}</p>
-                <p className="text-xs text-foreground-tertiary mt-1">assigned helmet{worker.helmets !== 1 ? 's' : ''}</p>
+                <p className="text-lg font-bold text-foreground capitalize">{worker.status ?? 'inactive'}</p>
               </div>
             </div>
 
-            <div className="mt-3 flex items-center gap-4 p-4 rounded-2xl border border-border bg-background">
-              <div className="w-9 h-9 bg-success/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Users className="w-4 h-4 text-success" />
+            {worker.supervisor_id && (
+              <div className="mt-3 flex items-center gap-4 p-4 rounded-2xl border border-border bg-background">
+                <div className="w-9 h-9 bg-success/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Users className="w-4 h-4 text-success" />
+                </div>
+                <div>
+                  <p className="text-xs text-foreground-tertiary font-medium">Supervisor ID</p>
+                  <p className="text-sm font-semibold text-foreground mt-0.5 font-mono">{worker.supervisor_id}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-foreground-tertiary font-medium">Supervisor</p>
-                <p className="text-sm font-semibold text-foreground mt-0.5">{worker.supervisor}</p>
-              </div>
-            </div>
-          </section>
+            )}
 
-          {/* Account */}
-          <section>
-            <h3 className="text-xs font-bold text-foreground-tertiary uppercase tracking-widest mb-4">Account</h3>
-            <div className="p-4 rounded-2xl border border-border bg-background flex items-center gap-4">
-              <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-4 h-4 text-primary" />
+            {worker.gateway_id && (
+              <div className="mt-3 flex items-center gap-4 p-4 rounded-2xl border border-border bg-background">
+                <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-foreground-tertiary font-medium">Gateway ID</p>
+                  <p className="text-sm font-semibold text-foreground mt-0.5 font-mono">{worker.gateway_id}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-foreground-tertiary font-medium">Member since</p>
-                <p className="text-sm font-semibold text-foreground mt-0.5">
-                  {new Date(worker.joinDate).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
-            </div>
+            )}
           </section>
         </div>
 
@@ -151,9 +147,17 @@ function ViewWorkerDrawer({ worker, onClose }: { worker: Worker | null; onClose:
 
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function WorkersPage() {
+  const [workerList, setWorkerList] = useState<Worker[]>([]);
   const [viewWorker, setViewWorker] = useState<Worker | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const activationRate = Math.round((adminSystemStats.activeWorkers / adminSystemStats.totalWorkers) * 100);
+  useEffect(() => {
+    workersApi.list().then(data => { setWorkerList(data); setLoading(false); });
+  }, []);
+
+  const activeCount = workerList.filter(w => w.status === 'active').length;
+  const inactiveCount = workerList.length - activeCount;
+  const activationRate = workerList.length ? Math.round((activeCount / workerList.length) * 100) : 0;
 
   return (
     <>
@@ -166,10 +170,10 @@ export default function WorkersPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Workers',    value: adminSystemStats.totalWorkers,  color: 'primary',  sub: 'All accounts' },
-            { label: 'Active Workers',   value: adminSystemStats.activeWorkers, color: 'success',  sub: 'Currently active' },
-            { label: 'Inactive Workers', value: adminSystemStats.totalWorkers - adminSystemStats.activeWorkers, color: 'warning', sub: 'Need attention' },
-            { label: 'Activation Rate',  value: `${activationRate}%`,           color: 'info',     sub: 'Active ratio' },
+            { label: 'Total Workers',    value: workerList.length, color: 'primary',  sub: 'All accounts' },
+            { label: 'Active Workers',   value: activeCount,       color: 'success',  sub: 'Currently active' },
+            { label: 'Inactive Workers', value: inactiveCount,     color: 'warning',  sub: 'Need attention' },
+            { label: 'Activation Rate',  value: `${activationRate}%`, color: 'info',  sub: 'Active ratio' },
           ].map(({ label, value, color, sub }) => (
             <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
               <div className="flex items-start justify-between">
@@ -189,39 +193,41 @@ export default function WorkersPage() {
         {/* Table */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Workers List</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  {['Name', 'Email', 'Department', 'Supervisor', 'Status', 'Helmets', 'Details'].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-foreground-secondary text-sm font-semibold">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {mockWorkers.map(worker => (
-                  <tr key={worker.id} className="border-b border-border/50 hover:bg-background transition-colors">
-                    <td className="py-3 px-4 text-foreground font-medium">{worker.name}</td>
-                    <td className="py-3 px-4 text-foreground-secondary text-sm">{worker.email}</td>
-                    <td className="py-3 px-4 text-foreground-secondary text-sm">{worker.department}</td>
-                    <td className="py-3 px-4 text-foreground-secondary text-sm">{worker.supervisor}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                        worker.status === 'active' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
-                      }`}>{worker.status.charAt(0).toUpperCase() + worker.status.slice(1)}</span>
-                    </td>
-                    <td className="py-3 px-4 text-foreground text-sm">{worker.helmets}</td>
-                    <td className="py-3 px-4">
-                      <button onClick={() => setViewWorker(worker)}
-                        className="p-2 hover:bg-background rounded transition-colors" title="View details">
-                        <Eye className="w-4 h-4 text-info" />
-                      </button>
-                    </td>
+          {loading ? (
+            <p className="text-foreground-secondary text-sm">Loading workers...</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    {['Name', 'Email', 'Department', 'Status', 'Details'].map(h => (
+                      <th key={h} className="text-left py-3 px-4 text-foreground-secondary text-sm font-semibold">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {workerList.map(worker => (
+                    <tr key={worker.id} className="border-b border-border/50 hover:bg-background transition-colors">
+                      <td className="py-3 px-4 text-foreground font-medium">{worker.name}</td>
+                      <td className="py-3 px-4 text-foreground-secondary text-sm">{worker.email}</td>
+                      <td className="py-3 px-4 text-foreground-secondary text-sm">{worker.department}</td>
+                      <td className="py-3 px-4">
+                        <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                          worker.status === 'active' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                        }`}>{(worker.status ?? 'inactive').charAt(0).toUpperCase() + (worker.status ?? 'inactive').slice(1)}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button onClick={() => setViewWorker(worker)}
+                          className="p-2 hover:bg-background rounded transition-colors" title="View details">
+                          <Eye className="w-4 h-4 text-info" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

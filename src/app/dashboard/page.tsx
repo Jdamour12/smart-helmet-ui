@@ -1,13 +1,74 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { AlertTriangle, Users, Zap, TrendingUp } from 'lucide-react';
-import { mockSystemStats, mockAlerts, alertTrendData, gasLevelData } from '@/lib/mock-data';
+import { analytics, alerts as alertsApi } from '@/lib/api';
+import type { Alert } from '@/lib/api';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
+  const [totalHelmets, setTotalHelmets]       = useState(0);
+  const [criticalAlerts, setCriticalAlerts]   = useState(0);
+  const [avgGasLevel, setAvgGasLevel]         = useState(0);
+  const [complianceRate, setComplianceRate]   = useState(0);
+  const [alertTrends, setAlertTrends]         = useState<{ name: string; value: number }[]>([]);
+  const [gasDistribution, setGasDistribution] = useState<{ name: string; value: number }[]>([]);
+  const [recentAlerts, setRecentAlerts]       = useState<Alert[]>([]);
+  const [gwHealth, setGwHealth]               = useState<{ total_gateways: number; online: number; avg_packet_delivery_rate: number } | null>(null);
+  const [loading, setLoading]                 = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [sum, gas, comp, byLevel, trends, feed, network] = await Promise.all([
+          analytics.summary().catch(() => ({})),
+          analytics.gasLevels().catch(() => ({})),
+          analytics.compliance().catch(() => ({})),
+          analytics.alertsByLevel().catch(() => []),
+          analytics.alertTrends(1).catch(() => []),
+          alertsApi.feed().catch(() => []),
+          analytics.networkHealth().catch(() => ({})),
+        ]);
+
+        const s   = sum   as { total_helmets: number; total_workers: number; unresolved_alerts: number };
+        const g   = gas   as { avg_co_ppm: number; co_distribution: { safe: number; warning: number; critical: number }; ch4_distribution: { safe: number; warning: number; critical: number } };
+        const c   = comp  as { compliance_rate_pct: number };
+        const lv  = byLevel as { level: string; count: number }[];
+        const tr  = trends  as { date: string; count: number }[];
+        const nw  = network as { total_gateways: number; online: number; avg_packet_delivery_rate: number };
+
+        setTotalHelmets(s.total_helmets);
+        setCriticalAlerts(lv.find(l => l.level === 'critical')?.count ?? 0);
+        setAvgGasLevel(g.avg_co_ppm ?? 0);
+        setComplianceRate(Math.round(c.compliance_rate_pct ?? 0));
+        setAlertTrends(tr.map(d => ({ name: new Date(d.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), value: d.count })));
+        setGasDistribution([
+          { name: 'CO Safe',     value: g.co_distribution?.safe ?? 0 },
+          { name: 'CO Warning',  value: g.co_distribution?.warning ?? 0 },
+          { name: 'CO Critical', value: g.co_distribution?.critical ?? 0 },
+          { name: 'CH4 Safe',    value: g.ch4_distribution?.safe ?? 0 },
+          { name: 'CH4 Warning', value: g.ch4_distribution?.warning ?? 0 },
+          { name: 'CH4 Critical',value: g.ch4_distribution?.critical ?? 0 },
+        ]);
+        setRecentAlerts(feed as Alert[]);
+        setGwHealth(nw);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <p className="text-foreground-secondary">Loading dashboard...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
-      {/* Page Title */}
       <div>
         <h2 className="text-3xl font-bold text-foreground">Dashboard</h2>
         <p className="text-foreground-secondary mt-1">Real-time mining safety helmet monitoring</p>
@@ -15,187 +76,125 @@ export default function Dashboard() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Active Helmets Card */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-foreground-secondary text-sm font-medium">Active Helmets</p>
-              <p className="text-3xl font-bold text-foreground mt-2">{mockSystemStats.activeHelmets}</p>
-              <p className="text-xs text-foreground-tertiary mt-2">of {mockSystemStats.totalHelmets} total</p>
+              <p className="text-foreground-secondary text-sm font-medium">Total Helmets</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{totalHelmets}</p>
+              <p className="text-xs text-foreground-tertiary mt-2">Registered helmets</p>
             </div>
-            <div className="bg-primary/10 p-3 rounded-lg">
-              <Users className="w-6 h-6 text-primary" />
-            </div>
+            <div className="bg-primary/10 p-3 rounded-lg"><Users className="w-6 h-6 text-primary" /></div>
           </div>
         </div>
 
-        {/* Critical Alerts Card */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-foreground-secondary text-sm font-medium">Critical Alerts</p>
-              <p className="text-3xl font-bold text-critical mt-2">{mockSystemStats.criticalAlerts}</p>
+              <p className="text-3xl font-bold text-critical mt-2">{criticalAlerts}</p>
               <p className="text-xs text-foreground-tertiary mt-2">Requiring immediate action</p>
             </div>
-            <div className="bg-critical/10 p-3 rounded-lg">
-              <AlertTriangle className="w-6 h-6 text-critical" />
-            </div>
+            <div className="bg-critical/10 p-3 rounded-lg"><AlertTriangle className="w-6 h-6 text-critical" /></div>
           </div>
         </div>
 
-        {/* Average Gas Level Card */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-foreground-secondary text-sm font-medium">Avg Gas Level</p>
-              <p className="text-3xl font-bold text-foreground mt-2">{mockSystemStats.avgGasLevel.toFixed(1)} ppm</p>
+              <p className="text-foreground-secondary text-sm font-medium">Avg CO Level</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{avgGasLevel.toFixed(1)} ppm</p>
               <p className="text-xs text-foreground-tertiary mt-2">CO concentration</p>
             </div>
-            <div className="bg-warning/10 p-3 rounded-lg">
-              <Zap className="w-6 h-6 text-warning" />
-            </div>
+            <div className="bg-warning/10 p-3 rounded-lg"><Zap className="w-6 h-6 text-warning" /></div>
           </div>
         </div>
 
-        {/* Compliance Rate Card */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-foreground-secondary text-sm font-medium">Compliance Rate</p>
-              <p className="text-3xl font-bold text-success mt-2">{mockSystemStats.complianceRate}%</p>
+              <p className="text-3xl font-bold text-success mt-2">{complianceRate}%</p>
               <p className="text-xs text-foreground-tertiary mt-2">Helmet wearing compliance</p>
             </div>
-            <div className="bg-success/10 p-3 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-success" />
-            </div>
+            <div className="bg-success/10 p-3 rounded-lg"><TrendingUp className="w-6 h-6 text-success" /></div>
           </div>
         </div>
       </div>
 
-      {/* Charts Grid */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Alert Trends Chart */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Alert Trends (24h)</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={alertTrendData}>
+            <LineChart data={alertTrends}>
               <XAxis dataKey="name" stroke="#94a3b8" />
               <YAxis stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                labelStyle={{ color: '#0f172a' }}
-              />
+              <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }} labelStyle={{ color: '#0f172a' }} />
               <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#f97316" 
-                strokeWidth={2}
-                dot={{ fill: '#f97316', r: 4 }}
-                activeDot={{ r: 6 }}
-                name="Alerts"
-              />
+              <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 4 }} activeDot={{ r: 6 }} name="Alerts" />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Gas Levels Distribution Chart */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Gas Levels Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={gasLevelData}>
+            <BarChart data={gasDistribution}>
               <XAxis dataKey="name" stroke="#94a3b8" angle={-45} textAnchor="end" height={80} />
               <YAxis stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                labelStyle={{ color: '#0f172a' }}
-              />
+              <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }} labelStyle={{ color: '#0f172a' }} />
               <Bar dataKey="value" fill="#0ea5e9" radius={[8, 8, 0, 0]} name="Helmets" />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Recent Alerts and System Health Grid */}
+      {/* Recent Alerts + System Health */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Critical Alerts Feed Card */}
         <div className="lg:col-span-2 bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Recent Alerts</h3>
           <div className="space-y-3">
-            {mockAlerts.slice(0, 5).map((alert) => (
-              <div
-                key={alert.id}
-                className="flex items-start gap-4 p-3 bg-background rounded-lg border border-border/50"
-              >
-                <div
-                  className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
-                    alert.level === 'critical'
-                      ? 'bg-critical'
-                      : alert.level === 'warning'
-                      ? 'bg-warning'
-                      : 'bg-info'
-                  }`}
-                />
+            {recentAlerts.length === 0 && <p className="text-sm text-foreground-secondary">No recent alerts.</p>}
+            {recentAlerts.slice(0, 5).map((alert) => (
+              <div key={alert.id} className="flex items-start gap-4 p-3 bg-background rounded-lg border border-border/50">
+                <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${alert.level === 'critical' ? 'bg-critical' : alert.level === 'warning' ? 'bg-warning' : 'bg-info'}`} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium text-foreground">{alert.workerName}</p>
-                    <span
-                      className={`text-xs px-2 py-1 rounded font-medium ${
-                        alert.level === 'critical'
-                          ? 'bg-critical/10 text-critical'
-                          : alert.level === 'warning'
-                          ? 'bg-warning/10 text-warning'
-                          : 'bg-info/10 text-info'
-                      }`}
-                    >
+                    <p className="font-medium text-foreground">{alert.worker_name}</p>
+                    <span className={`text-xs px-2 py-1 rounded font-medium ${alert.level === 'critical' ? 'bg-critical/10 text-critical' : alert.level === 'warning' ? 'bg-warning/10 text-warning' : 'bg-info/10 text-info'}`}>
                       {alert.level.charAt(0).toUpperCase() + alert.level.slice(1)}
                     </span>
                   </div>
                   <p className="text-sm text-foreground-secondary mt-1">{alert.message}</p>
-                  <p className="text-xs text-foreground-tertiary mt-2">
-                    {new Date(alert.timestamp).toLocaleTimeString()}
-                  </p>
+                  <p className="text-xs text-foreground-tertiary mt-2">{new Date(alert.timestamp).toLocaleTimeString()}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* System Health Card */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">System Health</h3>
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-foreground-secondary text-sm">Connected Gateways</p>
-                <p className="text-lg font-bold text-foreground">3/3</p>
+                <p className="text-lg font-bold text-foreground">{gwHealth?.online ?? 0}/{gwHealth?.total_gateways ?? 0}</p>
               </div>
               <div className="h-2 bg-background rounded-full overflow-hidden">
-                <div className="h-full w-full bg-success"></div>
+                <div className="h-full bg-success" style={{ width: gwHealth?.total_gateways ? `${(gwHealth.online / gwHealth.total_gateways) * 100}%` : '0%' }} />
               </div>
               <p className="text-xs text-success mt-1">Operational</p>
             </div>
-
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-foreground-secondary text-sm">Network Latency</p>
-                <p className="text-lg font-bold text-foreground">45ms</p>
+                <p className="text-foreground-secondary text-sm">Packet Delivery</p>
+                <p className="text-lg font-bold text-foreground">{((gwHealth?.avg_packet_delivery_rate ?? 0) * 100).toFixed(1)}%</p>
               </div>
               <div className="h-2 bg-background rounded-full overflow-hidden">
-                <div className="h-full w-4/5 bg-success"></div>
+                <div className="h-full bg-success" style={{ width: `${(gwHealth?.avg_packet_delivery_rate ?? 0) * 100}%` }} />
               </div>
               <p className="text-xs text-success mt-1">Optimal</p>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-foreground-secondary text-sm">System Uptime</p>
-                <p className="text-lg font-bold text-foreground">99.8%</p>
-              </div>
-              <div className="h-2 bg-background rounded-full overflow-hidden">
-                <div className="h-full w-full bg-success"></div>
-              </div>
-              <p className="text-xs text-success mt-1">Excellent</p>
             </div>
           </div>
         </div>

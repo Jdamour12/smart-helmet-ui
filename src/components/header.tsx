@@ -1,9 +1,10 @@
 "use client";
 
 import { Menu, Bell, User, LogOut } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { mockAlerts } from "@/lib/mock-data";
+import { clearToken } from "@/lib/api";
+import type { User as AppUser } from "@/lib/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,17 +15,26 @@ import {
 
 export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter();
-  const unreadCount = useMemo(
-    () => mockAlerts.filter((a) => !a.resolved).length,
-    [mockAlerts],
-  );
+  const [user, setUser] = useState<AppUser | null>(null);
 
-  const handleOpenProfile = () => router.push("/dashboard/profile");
-  const handleLogout = () => router.push("/login");
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try { setUser(JSON.parse(stored) as AppUser); } catch { /* ignore */ }
+    }
+  }, []);
+
+  const initials = user?.name
+    ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "?";
+
+  const handleLogout = () => {
+    clearToken();
+    router.replace("/login");
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-background-secondary border-b border-border px-6 py-4 flex items-center justify-between">
-      {/* Left: menu toggle + logo */}
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuClick}
@@ -35,9 +45,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
         </button>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-sm font-bold text-primary-foreground">
-              SH
-            </span>
+            <span className="text-sm font-bold text-primary-foreground">SH</span>
           </div>
           <h1 className="text-lg font-semibold text-foreground hidden sm:block">
             SafeHelm Dashboard
@@ -45,50 +53,28 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
         </div>
       </div>
 
-      {/* Right: notifications + profile */}
       <div className="flex items-center gap-2">
-        {/* Notification bell */}
         <button className="relative p-2 hover:bg-background-tertiary rounded-lg transition-colors">
           <Bell className="w-5 h-5 text-foreground-secondary" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-critical rounded-full flex items-center justify-center text-[10px] font-bold text-white px-0.5 leading-none">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
         </button>
 
-        {/* Profile dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="w-9 h-9 bg-primary rounded-full flex items-center justify-center hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary/40">
-              <span className="text-sm font-bold text-primary-foreground select-none">
-                JD
-              </span>
+              <span className="text-sm font-bold text-primary-foreground select-none">{initials}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
             className="w-56"
-            style={
-              {
-                "--accent": "var(--sidebar-accent)",
-                "--accent-foreground": "var(--sidebar-foreground)",
-              } as React.CSSProperties
-            }
+            style={{ "--accent": "var(--sidebar-accent)", "--accent-foreground": "var(--sidebar-foreground)" } as React.CSSProperties}
           >
             <div className="px-3 py-3">
-              <p className="font-semibold text-foreground text-sm">
-                James Davison
-              </p>
-              <p className="text-xs text-foreground-tertiary mt-0.5">
-                supervisor@safehelm.io
-              </p>
+              <p className="font-semibold text-foreground text-sm">{user?.name ?? "Supervisor"}</p>
+              <p className="text-xs text-foreground-tertiary mt-0.5">{user?.email ?? ""}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="gap-2.5 cursor-pointer"
-              onClick={handleOpenProfile}
-            >
+            <DropdownMenuItem className="gap-2.5 cursor-pointer" onClick={() => router.push("/dashboard/profile")}>
               <User className="w-4 h-4 text-foreground-secondary" />
               Profile
             </DropdownMenuItem>

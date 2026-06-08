@@ -1,43 +1,41 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Mail, Phone, MapPin, Calendar, Clock, Shield,
   Edit3, Users, Building2, IdCard, Wifi, X, Camera,
   Eye, EyeOff, Lock, CheckCircle2,
 } from 'lucide-react';
-
-const initialProfile = {
-  name:       'James Davison',
-  initials:   'JD',
-  role:       'Supervisor',
-  email:      'supervisor@safehelm.io',
-  phone:      '+250 788 123 456',
-  location:   'North Shaft Operations',
-  department: 'Mining Operations',
-  employeeId: 'SUP-JD-001',
-  joinDate:   '2024-01-15',
-  bio:        'Senior field supervisor with 6 years of experience in mining safety operations. Responsible for real-time helmet monitoring and worker safety compliance.',
-};
+import { auth } from '@/lib/api';
+import type { User } from '@/lib/api';
 
 /* ─── Change Password Drawer ──────────────────────────────── */
 function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [form, setForm] = useState({ current: '', next: '', confirm: '' });
-  const [show, setShow] = useState({ current: false, next: false, confirm: false });
-  const [error, setError] = useState('');
+  const [form, setForm]     = useState({ current: '', next: '', confirm: '' });
+  const [show, setShow]     = useState({ current: false, next: false, confirm: false });
+  const [error, setError]   = useState('');
   const [success, setSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   if (!open) return null;
 
   const toggle = (field: keyof typeof show) => setShow(s => ({ ...s, [field]: !s[field] }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (form.next.length < 8) { setError('New password must be at least 8 characters.'); return; }
     if (form.next !== form.confirm) { setError('New passwords do not match.'); return; }
-    setSuccess(true);
-    setTimeout(() => { setSuccess(false); setForm({ current: '', next: '', confirm: '' }); onClose(); }, 1500);
+    setSaving(true);
+    try {
+      await auth.changePassword(form.current, form.next);
+      setSuccess(true);
+      setTimeout(() => { setSuccess(false); setForm({ current: '', next: '', confirm: '' }); onClose(); }, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to change password');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const Field = ({
@@ -77,7 +75,6 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
         bg-background-secondary border border-border rounded-2xl shadow-2xl
         animate-in slide-in-from-right duration-300 ease-out">
 
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
           <div>
             <h2 className="text-base font-semibold text-foreground">Change Password</h2>
@@ -88,7 +85,6 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {success ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
@@ -113,7 +109,6 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
                   onChange={v => setForm(f => ({ ...f, next: v }))}
                   placeholder="At least 8 characters" />
 
-                {/* Strength indicator */}
                 {form.next.length > 0 && (
                   <div className="mt-2 space-y-1">
                     <div className="flex gap-1">
@@ -137,7 +132,6 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
                 onChange={v => setForm(f => ({ ...f, confirm: v }))}
                 placeholder="Repeat your new password" />
 
-              {/* Match indicator */}
               {form.confirm.length > 0 && (
                 <p className={`text-xs font-medium flex items-center gap-1.5 ${
                   form.next === form.confirm ? 'text-success' : 'text-critical'
@@ -154,7 +148,6 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
                 </div>
               )}
 
-              {/* Requirements */}
               <div className="bg-background rounded-xl border border-border p-4 space-y-2">
                 <p className="text-xs font-semibold text-foreground-secondary">Password requirements</p>
                 {[
@@ -172,7 +165,6 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
           )}
         </div>
 
-        {/* Footer */}
         {!success && (
           <div className="px-6 py-4 border-t border-border flex items-center gap-3 flex-shrink-0">
             <button type="button" onClick={onClose}
@@ -180,10 +172,10 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
                 border border-border rounded-lg hover:bg-background-tertiary transition-colors">
               Cancel
             </button>
-            <button type="submit" form="change-password-form"
+            <button type="submit" form="change-password-form" disabled={saving}
               className="flex-1 px-4 py-2.5 text-sm font-medium text-primary-foreground
-                bg-primary rounded-lg hover:bg-primary-dark transition-colors">
-              Update Password
+                bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+              {saving ? 'Updating...' : 'Update Password'}
             </button>
           </div>
         )}
@@ -195,31 +187,57 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
 /* ─── Edit Profile Drawer ─────────────────────────────────── */
 interface EditProfileDrawerProps {
   open: boolean;
-  profile: typeof initialProfile;
+  user: User;
   avatarUrl: string | null;
   onAvatarChange: (url: string) => void;
-  onSave: (p: typeof initialProfile) => void;
+  onSave: (u: User) => void;
   onClose: () => void;
 }
 
-function EditProfileDrawer({ open, profile, avatarUrl, onAvatarChange, onSave, onClose }: EditProfileDrawerProps) {
-  const [form, setForm] = useState({ ...profile });
-  const fileRef = useRef<HTMLInputElement>(null);
+function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onClose }: EditProfileDrawerProps) {
+  const [form, setForm]     = useState({ ...user });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState('');
+  const fileRef             = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setForm({ ...user }); }, [user]);
 
   if (!open) return null;
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    onAvatarChange(url);
+    try {
+      const res = await auth.uploadAvatar(file) as { avatar_url: string };
+      onAvatarChange(res.avatar_url);
+    } catch {
+      onAvatarChange(URL.createObjectURL(file));
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
-    onClose();
+    setError('');
+    setSaving(true);
+    try {
+      const updated = await auth.updateMe({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        location: form.location,
+        department: form.department,
+        bio: form.bio,
+      }) as User;
+      onSave(updated);
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const initials = form.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <>
@@ -228,7 +246,6 @@ function EditProfileDrawer({ open, profile, avatarUrl, onAvatarChange, onSave, o
         bg-background-secondary border border-border rounded-2xl shadow-2xl
         animate-in slide-in-from-right duration-300 ease-out">
 
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
           <div>
             <h2 className="text-base font-semibold text-foreground">Edit Profile</h2>
@@ -239,18 +256,15 @@ function EditProfileDrawer({ open, profile, avatarUrl, onAvatarChange, onSave, o
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <form id="edit-profile-form" onSubmit={handleSubmit} className="space-y-5">
-
-            {/* Avatar upload */}
             <div className="flex flex-col items-center gap-3 py-2">
               <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
                 <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center
                   text-2xl font-bold text-white overflow-hidden">
                   {avatarUrl
                     ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-                    : profile.initials}
+                    : initials}
                 </div>
                 <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center
                   opacity-0 group-hover:opacity-100 transition-opacity">
@@ -264,67 +278,54 @@ function EditProfileDrawer({ open, profile, avatarUrl, onAvatarChange, onSave, o
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Full Name <span className="text-critical">*</span></label>
-              <input required type="text" value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
-                  text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Email <span className="text-critical">*</span></label>
-              <input required type="email" value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
-                  text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Phone</label>
-              <input type="tel" value={form.phone}
-                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
-                  text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Zone / Location</label>
-              <input type="text" value={form.location}
-                onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
-                  text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Department</label>
-              <input type="text" value={form.department}
-                onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
-                  text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-            </div>
+            {[
+              { label: 'Full Name', key: 'name', type: 'text', required: true },
+              { label: 'Email', key: 'email', type: 'email', required: true },
+              { label: 'Phone', key: 'phone', type: 'tel', required: false },
+              { label: 'Zone / Location', key: 'location', type: 'text', required: false },
+              { label: 'Department', key: 'department', type: 'text', required: false },
+            ].map(({ label, key, type, required }) => (
+              <div key={key} className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">
+                  {label} {required && <span className="text-critical">*</span>}
+                </label>
+                <input
+                  required={required}
+                  type={type}
+                  value={(form as Record<string, string | undefined>)[key] ?? ''}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
+                    text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                />
+              </div>
+            ))}
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Bio</label>
-              <textarea rows={4} value={form.bio}
+              <textarea rows={4} value={form.bio ?? ''}
                 onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
                   text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
             </div>
+
+            {error && (
+              <div className="px-3 py-2.5 rounded-lg bg-critical/10 border border-critical/20">
+                <p className="text-xs font-medium text-critical">{error}</p>
+              </div>
+            )}
           </form>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-border flex items-center gap-3 flex-shrink-0">
           <button type="button" onClick={onClose}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-foreground-secondary
               border border-border rounded-lg hover:bg-background-tertiary transition-colors">
             Cancel
           </button>
-          <button type="submit" form="edit-profile-form"
+          <button type="submit" form="edit-profile-form" disabled={saving}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-primary-foreground
-              bg-primary rounded-lg hover:bg-primary-dark transition-colors">
-            Save Changes
+              bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -334,18 +335,36 @@ function EditProfileDrawer({ open, profile, avatarUrl, onAvatarChange, onSave, o
 
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function ProfilePage() {
-  const [editOpen, setEditOpen]     = useState(false);
-  const [pwOpen, setPwOpen]         = useState(false);
-  const [profile, setProfile]       = useState(initialProfile);
-  const [avatarUrl, setAvatarUrl]   = useState<string | null>(null);
+  const [user, setUser]         = useState<User | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [pwOpen, setPwOpen]     = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [loading, setLoading]   = useState(true);
 
-  const initials = profile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  useEffect(() => {
+    auth.me().then(u => {
+      const userData = u as User;
+      setUser(userData);
+      if (userData.avatar_url) setAvatarUrl(userData.avatar_url);
+    }).catch(() => {
+      const stored = localStorage.getItem('user');
+      if (stored) setUser(JSON.parse(stored) as User);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  if (loading || !user) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <p className="text-foreground-secondary">Loading profile...</p>
+      </div>
+    );
+  }
+
+  const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <>
       <div className="p-8 space-y-6">
-
-        {/* ── Profile header card ── */}
         <div className="bg-background-secondary border border-border rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex items-center gap-5">
             <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center
@@ -356,16 +375,18 @@ export default function ProfilePage() {
             </div>
             <div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-bold text-foreground">{profile.name}</h1>
+                <h1 className="text-2xl font-bold text-foreground">{user.name}</h1>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
                   bg-success/10 text-success text-xs font-semibold border border-success/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                   Active
                 </span>
               </div>
-              <p className="text-foreground-secondary text-sm mt-1">{profile.role} · {profile.department}</p>
+              <p className="text-foreground-secondary text-sm mt-1">
+                {user.role === 'supervisor' ? 'Supervisor' : 'Administrator'} {user.department ? `· ${user.department}` : ''}
+              </p>
               <p className="text-foreground-tertiary text-xs mt-1 flex items-center gap-1.5">
-                <Mail className="w-3 h-3" />{profile.email}
+                <Mail className="w-3 h-3" />{user.email}
               </p>
             </div>
           </div>
@@ -376,19 +397,16 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* ── Two-column info ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* Personal Information */}
           <div className="bg-background-secondary border border-border rounded-2xl p-6">
             <h2 className="text-base font-semibold text-foreground mb-6">Personal Information</h2>
             <div className="space-y-4">
               {[
-                { icon: IdCard,    label: 'Full Name',   value: profile.name },
-                { icon: Mail,      label: 'Email',       value: profile.email },
-                { icon: Phone,     label: 'Phone',       value: profile.phone },
-                { icon: MapPin,    label: 'Zone',        value: profile.location },
-                { icon: Building2, label: 'Department',  value: profile.department },
+                { icon: IdCard,    label: 'Full Name',   value: user.name },
+                { icon: Mail,      label: 'Email',       value: user.email },
+                { icon: Phone,     label: 'Phone',       value: user.phone || '—' },
+                { icon: MapPin,    label: 'Zone',        value: user.location || '—' },
+                { icon: Building2, label: 'Department',  value: user.department || '—' },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="flex items-center gap-4">
                   <div className="w-9 h-9 rounded-xl bg-background border border-border flex items-center justify-center flex-shrink-0">
@@ -401,21 +419,20 @@ export default function ProfilePage() {
                 </div>
               ))}
             </div>
-            <div className="mt-6 pt-6 border-t border-border">
-              <p className="text-xs text-foreground-tertiary font-medium mb-2">Bio</p>
-              <p className="text-sm text-foreground-secondary leading-relaxed">{profile.bio}</p>
-            </div>
+            {user.bio && (
+              <div className="mt-6 pt-6 border-t border-border">
+                <p className="text-xs text-foreground-tertiary font-medium mb-2">Bio</p>
+                <p className="text-sm text-foreground-secondary leading-relaxed">{user.bio}</p>
+              </div>
+            )}
           </div>
 
-          {/* Account Information */}
           <div className="bg-background-secondary border border-border rounded-2xl p-6 flex flex-col gap-6">
             <h2 className="text-base font-semibold text-foreground">Account Information</h2>
-
             <div className="space-y-4">
               {[
-                { icon: Shield,   label: 'Employee ID',   value: profile.employeeId },
-                { icon: Users,    label: 'Role',          value: profile.role },
-                { icon: Calendar, label: 'Member Since',  value: new Date(profile.joinDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) },
+                { icon: Shield,   label: 'User ID',       value: user.id },
+                { icon: Users,    label: 'Role',          value: user.role === 'supervisor' ? 'Supervisor' : 'Administrator' },
                 { icon: Clock,    label: 'Last Login',    value: 'Today at ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
                 { icon: Wifi,     label: 'Portal Access', value: 'Supervisor Dashboard' },
               ].map(({ icon: Icon, label, value }) => (
@@ -436,7 +453,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border">
                 <div>
                   <p className="text-sm font-medium text-foreground">Password</p>
-                  <p className="text-xs text-foreground-tertiary">Last changed 30 days ago</p>
+                  <p className="text-xs text-foreground-tertiary">Keep it strong and unique</p>
                 </div>
                 <button onClick={() => setPwOpen(true)}
                   className="text-xs text-primary hover:text-primary-dark font-semibold transition-colors">
@@ -451,10 +468,10 @@ export default function ProfilePage() {
       <ChangePasswordDrawer open={pwOpen} onClose={() => setPwOpen(false)} />
       <EditProfileDrawer
         open={editOpen}
-        profile={profile}
+        user={user}
         avatarUrl={avatarUrl}
         onAvatarChange={setAvatarUrl}
-        onSave={setProfile}
+        onSave={setUser}
         onClose={() => setEditOpen(false)}
       />
     </>

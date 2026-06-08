@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { auth, saveToken } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,24 +14,34 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [role, setRole] = useState<'supervisor' | 'admin'>('supervisor');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
     try {
-      // Simulate login delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock authentication - in production, this would call an API
-      if (email && password) {
-        // Redirect based on role
-        if (role === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
-        }
+      const res = await auth.login(email, password, role);
+      saveToken(res.access_token);
+
+      // Backend may or may not return a user object — fetch it explicitly
+      try {
+        const me = await auth.me();
+        localStorage.setItem('user', JSON.stringify(me));
+      } catch {
+        // If /me fails, store minimal user info from what we know
+        if (res.user) localStorage.setItem('user', JSON.stringify(res.user));
       }
+
+      // Route based on the role the user selected
+      if (role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Invalid credentials');
     } finally {
       setIsLoading(false);
     }
@@ -167,6 +178,13 @@ export default function LoginPage() {
                 <span className="text-sm text-foreground-secondary">Remember me</span>
               </label>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-500">
+                {error}
+              </div>
+            )}
 
             {/* Login Button */}
             <button

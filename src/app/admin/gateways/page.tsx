@@ -1,20 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus, Eye, Edit2, Trash2, Wifi, WifiOff,
-  X, MapPin, Radio, Activity, Clock,
+  X, MapPin, Radio,
   Signal, Server, ChevronRight, CheckCircle, AlertCircle,
 } from 'lucide-react';
-import { mockGateways, adminSystemStats } from '@/lib/mock-data';
-import type { Gateway } from '@/lib/types';
+import { gateways as gatewaysApi } from '@/lib/api';
+import type { Gateway } from '@/lib/api';
 
-/* local extension with fields used in the UI */
-const gateways = mockGateways.map((g, i) => ({
-  ...g,
-  ipAddress: `192.168.1.${10 + i}`,
-}));
-type GatewayEx = typeof gateways[number];
+type GatewayEx = Gateway & { ip_address?: string };
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -31,7 +26,11 @@ function AddGatewayDrawer({ open, onClose }: { open: boolean; onClose: () => voi
   const [form, setForm] = useState({ gatewayId: '', location: '', ipAddress: '', zone: '', status: 'online' as 'online' | 'offline' });
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onClose(); };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await gatewaysApi.create({ id: form.gatewayId || undefined, location: form.location, status: form.status });
+    onClose();
+  };
 
   return (
     <>
@@ -188,7 +187,7 @@ function ViewGatewayDrawer({
                     <span className={`w-1.5 h-1.5 rounded-full ${
                       gateway.status === 'online' ? 'bg-success animate-pulse' : 'bg-critical'
                     }`} />
-                    {gateway.status.charAt(0).toUpperCase() + gateway.status.slice(1)}
+                    {(gateway.status ?? "offline").charAt(0).toUpperCase() + (gateway.status ?? "offline").slice(1)}
                   </span>
                 </div>
               </div>
@@ -319,7 +318,11 @@ function EditGatewayDrawer({ gateway, onClose }: { gateway: GatewayEx | null; on
     status:    gateway.status as 'online' | 'offline',
   });
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onClose(); };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await gatewaysApi.update(gateway.id, { location: form.location, status: form.status });
+    onClose();
+  };
 
   return (
     <>
@@ -406,12 +409,23 @@ function EditGatewayDrawer({ gateway, onClose }: { gateway: GatewayEx | null; on
 
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function GatewaysPage() {
+  const [gwList, setGwList]       = useState<GatewayEx[]>([]);
   const [addOpen, setAddOpen]     = useState(false);
   const [viewGw, setViewGw]       = useState<GatewayEx | null>(null);
   const [editGw, setEditGw]       = useState<GatewayEx | null>(null);
+  const [loading, setLoading]     = useState(true);
 
-  const offlineCount = adminSystemStats.totalGateways - adminSystemStats.onlineGateways;
-  const availRate    = Math.round((adminSystemStats.onlineGateways / adminSystemStats.totalGateways) * 100);
+  const load = () => gatewaysApi.list().then(data => { setGwList(data); setLoading(false); });
+  useEffect(() => { load(); }, []);
+
+  const onlineCount  = gwList.filter(g => g.status === 'online').length;
+  const offlineCount = gwList.length - onlineCount;
+  const availRate    = gwList.length ? Math.round((onlineCount / gwList.length) * 100) : 0;
+
+  const handleDelete = async (id: string) => {
+    await gatewaysApi.delete(id);
+    load();
+  };
 
   return (
     <>
@@ -431,10 +445,10 @@ export default function GatewaysPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Gateways',    value: adminSystemStats.totalGateways,       color: 'primary',  sub: 'All devices' },
-            { label: 'Online Gateways',   value: adminSystemStats.onlineGateways,      color: 'success',  sub: 'Fully operational' },
-            { label: 'Offline Gateways',  value: offlineCount,                         color: 'critical', sub: 'Need attention' },
-            { label: 'Availability Rate', value: `${availRate}%`,                      color: 'info',     sub: 'Network uptime' },
+            { label: 'Total Gateways',    value: gwList.length,   color: 'primary',  sub: 'All devices' },
+            { label: 'Online Gateways',   value: onlineCount,     color: 'success',  sub: 'Fully operational' },
+            { label: 'Offline Gateways',  value: offlineCount,    color: 'critical', sub: 'Need attention' },
+            { label: 'Availability Rate', value: `${availRate}%`, color: 'info',     sub: 'Network uptime' },
           ].map(({ label, value, color, sub }) => (
             <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
               <div className="flex items-start justify-between">
@@ -454,79 +468,80 @@ export default function GatewaysPage() {
         {/* Table */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Gateways List</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  {['ID', 'Location', 'IP Address', 'Helmets', 'Status', 'Signal', 'Last Heartbeat', 'Actions'].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-foreground-secondary text-sm font-semibold">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {gateways.map(gw => (
-                  <tr key={gw.id} className="border-b border-border/50 hover:bg-background transition-colors">
-                    <td className="py-3 px-4 text-foreground font-medium font-mono text-sm">{gw.id}</td>
-                    <td className="py-3 px-4 text-foreground-secondary text-sm">{gw.location}</td>
-                    <td className="py-3 px-4 text-foreground-secondary text-sm font-mono text-xs">{gw.ipAddress}</td>
-                    <td className="py-3 px-4 text-foreground text-sm">{gw.connectedHelmets}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        {gw.status === 'online'
-                          ? <><Wifi className="w-4 h-4 text-success" /><span className="text-xs px-2.5 py-1 rounded-full font-medium bg-success/10 text-success">Online</span></>
-                          : <><WifiOff className="w-4 h-4 text-critical" /><span className="text-xs px-2.5 py-1 rounded-full font-medium bg-critical/10 text-critical">Offline</span></>}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-end gap-0.5 h-4">
-                          {[1,2,3,4].map(b => {
-                            const bars = Math.round((gw.signalStrength / 100) * 4);
-                            return (
-                              <div key={b} className={`w-1.5 rounded-sm ${
-                                b <= bars
-                                  ? gw.signalStrength > 70 ? 'bg-success' : gw.signalStrength > 40 ? 'bg-warning' : 'bg-critical'
-                                  : 'bg-background-tertiary'
-                              }`} style={{ height: `${b * 25}%` }} />
-                            );
-                          })}
-                        </div>
-                        <span className="text-xs text-foreground-secondary">{gw.signalStrength}%</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-foreground-secondary text-sm">
-                      {new Date(gw.lastHeartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setViewGw(gw)}
-                          className="p-2 hover:bg-background rounded transition-colors" title="View">
-                          <Eye className="w-4 h-4 text-info" />
-                        </button>
-                        <button onClick={() => setEditGw(gw)}
-                          className="p-2 hover:bg-background rounded transition-colors" title="Edit">
-                          <Edit2 className="w-4 h-4 text-primary" />
-                        </button>
-                        <button className="p-2 hover:bg-background rounded transition-colors" title="Delete">
-                          <Trash2 className="w-4 h-4 text-critical" />
-                        </button>
-                      </div>
-                    </td>
+          {loading ? (
+            <p className="text-foreground-secondary text-sm">Loading gateways...</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    {['ID', 'Location', 'Helmets', 'Status', 'Signal', 'Last Heartbeat', 'Actions'].map(h => (
+                      <th key={h} className="text-left py-3 px-4 text-foreground-secondary text-sm font-semibold">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {gwList.map(gw => (
+                    <tr key={gw.id} className="border-b border-border/50 hover:bg-background transition-colors">
+                      <td className="py-3 px-4 text-foreground font-medium font-mono text-sm">{gw.id}</td>
+                      <td className="py-3 px-4 text-foreground-secondary text-sm">{gw.location}</td>
+                      <td className="py-3 px-4 text-foreground text-sm">{gw.connected_helmets}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          {gw.status === 'online'
+                            ? <><Wifi className="w-4 h-4 text-success" /><span className="text-xs px-2.5 py-1 rounded-full font-medium bg-success/10 text-success">Online</span></>
+                            : <><WifiOff className="w-4 h-4 text-critical" /><span className="text-xs px-2.5 py-1 rounded-full font-medium bg-critical/10 text-critical">Offline</span></>}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-end gap-0.5 h-4">
+                            {[1,2,3,4].map(b => {
+                              const bars = Math.round((gw.signal_strength / 100) * 4);
+                              return (
+                                <div key={b} className={`w-1.5 rounded-sm ${
+                                  b <= bars
+                                    ? gw.signal_strength > 70 ? 'bg-success' : gw.signal_strength > 40 ? 'bg-warning' : 'bg-critical'
+                                    : 'bg-background-tertiary'
+                                }`} style={{ height: `${b * 25}%` }} />
+                              );
+                            })}
+                          </div>
+                          <span className="text-xs text-foreground-secondary">{gw.signal_strength}%</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-foreground-secondary text-sm">
+                        {new Date(gw.last_heartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setViewGw(gw)} className="p-2 hover:bg-background rounded transition-colors" title="View">
+                            <Eye className="w-4 h-4 text-info" />
+                          </button>
+                          <button onClick={() => setEditGw(gw)} className="p-2 hover:bg-background rounded transition-colors" title="Edit">
+                            <Edit2 className="w-4 h-4 text-primary" />
+                          </button>
+                          <button onClick={() => handleDelete(gw.id)} className="p-2 hover:bg-background rounded transition-colors" title="Delete">
+                            <Trash2 className="w-4 h-4 text-critical" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
-      <AddGatewayDrawer open={addOpen} onClose={() => setAddOpen(false)} />
+      <AddGatewayDrawer open={addOpen} onClose={() => { setAddOpen(false); load(); }} />
       <ViewGatewayDrawer
         gateway={viewGw}
         onClose={() => setViewGw(null)}
         onEdit={g => { setViewGw(null); setEditGw(g); }}
       />
-      <EditGatewayDrawer gateway={editGw} onClose={() => setEditGw(null)} />
+      <EditGatewayDrawer gateway={editGw} onClose={() => { setEditGw(null); load(); }} />
     </>
   );
 }

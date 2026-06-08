@@ -1,14 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus, Eye, Edit2, Trash2, X,
-  User, Mail, MapPin, Users, Wifi,
+  Mail, MapPin, Users, Wifi,
   Calendar, Clock, ChevronRight, Shield,
 } from 'lucide-react';
-import { mockSupervisors, adminSystemStats } from '@/lib/mock-data';
-
-type Supervisor = typeof mockSupervisors[number];
+import { supervisors as supervisorsApi } from '@/lib/api';
+import type { Supervisor } from '@/lib/api';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -26,7 +25,11 @@ function AddSupervisorDrawer({ open, onClose }: { open: boolean; onClose: () => 
 
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onClose(); };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await supervisorsApi.create({ name: form.name, email: form.email, department: form.location });
+    onClose();
+  };
 
   return (
     <>
@@ -167,7 +170,7 @@ function ViewSupervisorDrawer({
                     supervisor.status === 'active' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${supervisor.status === 'active' ? 'bg-success' : 'bg-warning'}`} />
-                    {supervisor.status.charAt(0).toUpperCase() + supervisor.status.slice(1)}
+                    {(supervisor.status ?? "inactive").charAt(0).toUpperCase() + (supervisor.status ?? "inactive").slice(1)}
                   </span>
                 </div>
               </div>
@@ -281,7 +284,11 @@ function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor 
     status:   supervisor.status as 'active' | 'inactive',
   });
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onClose(); };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await supervisorsApi.update(supervisor.id, { name: form.name, email: form.email, department: form.location, status: form.status });
+    onClose();
+  };
 
   return (
     <>
@@ -386,9 +393,21 @@ function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor 
 
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function SupervisorsPage() {
+  const [supList, setSupList]         = useState<Supervisor[]>([]);
   const [addOpen, setAddOpen]         = useState(false);
   const [viewSup, setViewSup]         = useState<Supervisor | null>(null);
   const [editSup, setEditSup]         = useState<Supervisor | null>(null);
+  const [loading, setLoading]         = useState(true);
+
+  const load = () => supervisorsApi.list().then(data => { setSupList(data); setLoading(false); });
+  useEffect(() => { load(); }, []);
+
+  const activeCount = supList.filter(s => s.status === 'active').length;
+
+  const handleDelete = async (id: string) => {
+    await supervisorsApi.delete(id);
+    load();
+  };
 
   return (
     <>
@@ -407,10 +426,10 @@ export default function SupervisorsPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Supervisors', value: adminSystemStats.totalSupervisors, color: 'primary' },
-            { label: 'Active Supervisors', value: adminSystemStats.activeSupervisors, color: 'success' },
-            { label: 'Avg Workers', value: Math.round(adminSystemStats.totalWorkers / adminSystemStats.totalSupervisors), color: 'info' },
-            { label: 'Avg Gateways', value: Math.round(adminSystemStats.totalGateways / adminSystemStats.totalSupervisors), color: 'warning' },
+            { label: 'Total Supervisors',  value: supList.length, color: 'primary' },
+            { label: 'Active Supervisors', value: activeCount,    color: 'success' },
+            { label: 'Avg Workers',  value: supList.length ? Math.round(supList.reduce((a, s) => a + (s.worker_count ?? 0), 0) / supList.length) : 0, color: 'info' },
+            { label: 'Avg Gateways', value: supList.length ? Math.round(supList.reduce((a, s) => a + (s.gateway_count ?? 0), 0) / supList.length) : 0, color: 'warning' },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
               <div className="flex items-start justify-between">
@@ -429,60 +448,59 @@ export default function SupervisorsPage() {
         {/* Table */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Supervisors List</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  {['Name', 'Email', 'Location', 'Workers', 'Status', 'Last Active', 'Actions'].map(h => (
-                    <th key={h} className="text-left py-3 px-4 text-foreground-secondary text-sm font-semibold">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {mockSupervisors.map(sup => (
-                  <tr key={sup.id} className="border-b border-border/50 hover:bg-background transition-colors">
-                    <td className="py-3 px-4 text-foreground font-medium">{sup.name}</td>
-                    <td className="py-3 px-4 text-foreground-secondary text-sm">{sup.email}</td>
-                    <td className="py-3 px-4 text-foreground-secondary text-sm">{sup.location}</td>
-                    <td className="py-3 px-4 text-foreground text-sm">{sup.assignedWorkers}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                        sup.status === 'active' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
-                      }`}>{sup.status.charAt(0).toUpperCase() + sup.status.slice(1)}</span>
-                    </td>
-                    <td className="py-3 px-4 text-foreground-secondary text-sm">
-                      {new Date(sup.lastActive).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setViewSup(sup)}
-                          className="p-2 hover:bg-background rounded transition-colors" title="View">
-                          <Eye className="w-4 h-4 text-info" />
-                        </button>
-                        <button onClick={() => setEditSup(sup)}
-                          className="p-2 hover:bg-background rounded transition-colors" title="Edit">
-                          <Edit2 className="w-4 h-4 text-primary" />
-                        </button>
-                        <button className="p-2 hover:bg-background rounded transition-colors" title="Delete">
-                          <Trash2 className="w-4 h-4 text-critical" />
-                        </button>
-                      </div>
-                    </td>
+          {loading ? (
+            <p className="text-foreground-secondary text-sm">Loading supervisors...</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    {['Name', 'Email', 'Department', 'Workers', 'Status', 'Actions'].map(h => (
+                      <th key={h} className="text-left py-3 px-4 text-foreground-secondary text-sm font-semibold">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {supList.map(sup => (
+                    <tr key={sup.id} className="border-b border-border/50 hover:bg-background transition-colors">
+                      <td className="py-3 px-4 text-foreground font-medium">{sup.name}</td>
+                      <td className="py-3 px-4 text-foreground-secondary text-sm">{sup.email}</td>
+                      <td className="py-3 px-4 text-foreground-secondary text-sm">{sup.department}</td>
+                      <td className="py-3 px-4 text-foreground text-sm">{sup.worker_count ?? 0}</td>
+                      <td className="py-3 px-4">
+                        <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                          sup.status === 'active' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
+                        }`}>{(sup.status ?? "inactive").charAt(0).toUpperCase() + (sup.status ?? "inactive").slice(1)}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setViewSup(sup)} className="p-2 hover:bg-background rounded transition-colors" title="View">
+                            <Eye className="w-4 h-4 text-info" />
+                          </button>
+                          <button onClick={() => setEditSup(sup)} className="p-2 hover:bg-background rounded transition-colors" title="Edit">
+                            <Edit2 className="w-4 h-4 text-primary" />
+                          </button>
+                          <button onClick={() => handleDelete(sup.id)} className="p-2 hover:bg-background rounded transition-colors" title="Delete">
+                            <Trash2 className="w-4 h-4 text-critical" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
-      <AddSupervisorDrawer open={addOpen} onClose={() => setAddOpen(false)} />
+      <AddSupervisorDrawer open={addOpen} onClose={() => { setAddOpen(false); load(); }} />
       <ViewSupervisorDrawer
         supervisor={viewSup}
         onClose={() => setViewSup(null)}
         onEdit={s => { setViewSup(null); setEditSup(s); }}
       />
-      <EditSupervisorDrawer supervisor={editSup} onClose={() => setEditSup(null)} />
+      <EditSupervisorDrawer supervisor={editSup} onClose={() => { setEditSup(null); load(); }} />
     </>
   );
 }
