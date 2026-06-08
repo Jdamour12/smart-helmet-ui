@@ -237,7 +237,7 @@ function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onCl
     }
   };
 
-  const initials = form.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const initials = (form.name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <>
@@ -360,7 +360,7 @@ export default function AdminProfilePage() {
     );
   }
 
-  const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const initials = (user.name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <>

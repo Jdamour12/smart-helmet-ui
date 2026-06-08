@@ -162,7 +162,7 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-foreground">{alert.worker_name}</p>
                     <span className={`text-xs px-2 py-1 rounded font-medium ${alert.level === 'critical' ? 'bg-critical/10 text-critical' : alert.level === 'warning' ? 'bg-warning/10 text-warning' : 'bg-info/10 text-info'}`}>
-                      {alert.level.charAt(0).toUpperCase() + alert.level.slice(1)}
+                      {(alert.level ?? 'info').charAt(0).toUpperCase() + (alert.level ?? 'info').slice(1)}
                     </span>
                   </div>
                   <p className="text-sm text-foreground-secondary mt-1">{alert.message}</p>

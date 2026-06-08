@@ -19,7 +19,7 @@ function Overlay({ onClick }: { onClick: () => void }) {
 function ViewWorkerDrawer({ worker, onClose }: { worker: Worker | null; onClose: () => void }) {
   if (!worker) return null;
 
-  const initials = worker.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const initials = (worker.name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <>

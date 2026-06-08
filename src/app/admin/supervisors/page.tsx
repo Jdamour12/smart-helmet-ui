@@ -142,7 +142,7 @@ function ViewSupervisorDrawer({
 }) {
   if (!supervisor) return null;
 
-  const initials = supervisor.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const initials = (supervisor.name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <>

@@ -108,15 +108,15 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
 
   if (!helmet) return null;
 
-  const co   = live?.co_ppm   ?? helmet.co;
-  const ch4  = live?.gas_level ?? helmet.ch4;
-  const temp = live?.temperature ?? helmet.temperature;
-  const hum  = live?.humidity    ?? helmet.humidity;
+  const co   = live?.co_ppm   ?? helmet.co   ?? 0;
+  const ch4  = live?.gas_level ?? helmet.ch4  ?? 0;
+  const temp = live?.temperature ?? helmet.temperature ?? 0;
+  const hum  = live?.humidity    ?? helmet.humidity    ?? 0;
   const worn = live?.helmet_worn    ?? helmet.helmet_wear;
   const impact = live?.vibration_detected ?? helmet.impact_detected;
   const lastTs = live?.recorded_at ?? helmet.last_update;
 
-  const initials = helmet.worker_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const initials = (helmet.worker_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <>
@@ -218,10 +218,10 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
               <div className="p-5 rounded-2xl border border-border bg-background">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2"><Battery className="w-4 h-4 text-foreground-secondary" /><span className="text-sm font-semibold text-foreground">Battery Level</span></div>
-                  <span className={`text-lg font-bold ${helmet.battery > 60 ? 'text-success' : helmet.battery > 30 ? 'text-warning' : 'text-critical'}`}>{helmet.battery}%</span>
+                  <span className={`text-lg font-bold ${(helmet.battery ?? 0) > 60 ? 'text-success' : (helmet.battery ?? 0) > 30 ? 'text-warning' : 'text-critical'}`}>{helmet.battery ?? 0}%</span>
                 </div>
                 <div className="h-2.5 bg-background-tertiary rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${helmet.battery > 60 ? 'bg-success' : helmet.battery > 30 ? 'bg-warning' : 'bg-critical'}`} style={{ width: `${helmet.battery}%` }} />
+                  <div className={`h-full rounded-full transition-all ${(helmet.battery ?? 0) > 60 ? 'bg-success' : (helmet.battery ?? 0) > 30 ? 'bg-warning' : 'bg-critical'}`} style={{ width: `${helmet.battery ?? 0}%` }} />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -237,7 +237,7 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
                 </div>
                 <div className="p-4 rounded-2xl border border-border bg-background">
                   <Clock className="w-4 h-4 text-foreground-secondary mb-2" />
-                  <p className="text-sm font-bold text-foreground">{new Date(lastTs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="text-sm font-bold text-foreground">{lastTs ? new Date(lastTs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'}</p>
                   <p className="text-xs text-foreground-tertiary mt-0.5">Last update</p>
                 </div>
               </div>
@@ -337,7 +337,7 @@ export default function HelmetMonitoring() {
 
   const activeCount   = helmetList.filter(h => h.status === 'active').length;
   const criticalCount = helmetList.filter(h => h.status === 'alarm').length;
-  const avgBattery    = helmetList.length ? (helmetList.reduce((s, h) => s + h.battery, 0) / helmetList.length).toFixed(1) : '0';
+  const avgBattery    = helmetList.length ? (helmetList.reduce((s, h) => s + (h.battery ?? 0), 0) / helmetList.length).toFixed(1) : '0';
   const wearingCount  = helmetList.filter(h => h.helmet_wear).length;
 
   const handleDelete = async (id: string) => { await helmetsApi.delete(id); load(); };
@@ -396,8 +396,8 @@ export default function HelmetMonitoring() {
                         {(helmet.status ?? "inactive").charAt(0).toUpperCase() + (helmet.status ?? "inactive").slice(1)}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-foreground text-sm">{helmet.co} ppm / {(helmet.ch4 ?? 0).toFixed(1)}%</td>
-                    <td className="px-4 py-4 text-foreground text-sm">{helmet.temperature}°C / {helmet.humidity}%</td>
+                    <td className="px-4 py-4 text-foreground text-sm">{(helmet.co ?? 0).toFixed(1)} ppm / {(helmet.ch4 ?? 0).toFixed(2)}%</td>
+                    <td className="px-4 py-4 text-foreground text-sm">{(helmet.temperature ?? 0).toFixed(1)}°C / {(helmet.humidity ?? 0).toFixed(1)}%</td>
                     <td className="px-4 py-4">
                       <span className={`text-xs px-2 py-1 rounded font-medium ${helmet.helmet_wear ? 'bg-success/10 text-success' : 'bg-critical/10 text-critical'}`}>
                         {helmet.helmet_wear ? 'Yes' : 'No'}
@@ -406,9 +406,9 @@ export default function HelmetMonitoring() {
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-1">
                         <div className="h-2 w-16 bg-background rounded-full overflow-hidden">
-                          <div className={`h-full ${helmet.battery > 60 ? 'bg-success' : helmet.battery > 30 ? 'bg-warning' : 'bg-critical'}`} style={{ width: `${helmet.battery}%` }} />
+                          <div className={`h-full ${(helmet.battery ?? 0) > 60 ? 'bg-success' : (helmet.battery ?? 0) > 30 ? 'bg-warning' : 'bg-critical'}`} style={{ width: `${helmet.battery ?? 0}%` }} />
                         </div>
-                        <span className="text-xs text-foreground-secondary">{helmet.battery}%</span>
+                        <span className="text-xs text-foreground-secondary">{helmet.battery ?? 0}%</span>
                       </div>
                     </td>
                     <td className="px-4 py-4">
