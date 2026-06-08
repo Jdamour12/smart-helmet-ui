@@ -4,7 +4,7 @@ import { impactData, mockHelmets } from '@/lib/mock-data';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function ImpactDetection() {
-  const helmetWithImpacts = mockHelmets.filter(h => h.impactDetected).length;
+  const helmetWithImpacts = mockHelmets.filter(h => h.impact_detected).length;
   const totalImpactsTodayData = impactData.reduce((sum, d) => sum + d.value, 0);
 
   return (
@@ -54,9 +54,9 @@ export default function ImpactDetection() {
       <div className="bg-background-secondary border border-border rounded-lg p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">Detected Impacts</h3>
         <div className="space-y-3">
-          {mockHelmets.filter(h => h.impactDetected).length > 0 ? (
+          {mockHelmets.filter(h => h.impact_detected).length > 0 ? (
             mockHelmets.map((helmet) => (
-              helmet.impactDetected && (
+              helmet.impact_detected && (
                 <div
                   key={helmet.id}
                   className="flex items-start gap-4 p-4 bg-background rounded-lg border border-critical/30 bg-critical/5"
@@ -64,14 +64,14 @@ export default function ImpactDetection() {
                   <div className="w-3 h-3 rounded-full bg-critical mt-1.5 flex-shrink-0" />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="font-semibold text-foreground">{helmet.workerName}</p>
+                      <p className="font-semibold text-foreground">{helmet.worker_name}</p>
                       <span className="text-xs px-2 py-1 rounded bg-critical/10 text-critical font-medium">
                         CRITICAL
                       </span>
                     </div>
                     <p className="text-sm text-foreground-secondary mt-1">Impact detected - immediate response recommended</p>
                     <p className="text-xs text-foreground-tertiary mt-2">
-                      Last detected: {new Date(helmet.lastUpdate).toLocaleTimeString()}
+                      Last detected: {new Date(helmet.last_update).toLocaleTimeString()}
                     </p>
                   </div>
                 </div>

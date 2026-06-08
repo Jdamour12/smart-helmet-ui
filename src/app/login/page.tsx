@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { auth, saveToken } from '@/lib/api';
+import { useLogin } from '@/hooks/use-auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,54 +13,30 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [role, setRole] = useState<'supervisor' | 'admin'>('supervisor');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const { mutate: login, isPending, error } = useLogin();
+
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const res = await auth.login(email, password, role);
-      saveToken(res.access_token);
-
-      // Backend may or may not return a user object — fetch it explicitly
-      try {
-        const me = await auth.me();
-        localStorage.setItem('user', JSON.stringify(me));
-      } catch {
-        // If /me fails, store minimal user info from what we know
-        if (res.user) localStorage.setItem('user', JSON.stringify(res.user));
-      }
-
-      // Route based on the role the user selected
-      if (role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid credentials');
-    } finally {
-      setIsLoading(false);
-    }
+    login(
+      { email, password, role },
+      {
+        onSuccess: () => {
+          router.push(role === 'admin' ? '/admin' : '/dashboard');
+        },
+      },
+    );
   };
 
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left Side - Image with Overlay */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: 'url(/mining-safety.jpg)',
-          }}
+          style={{ backgroundImage: 'url(/mining-safety.jpg)' }}
         />
-        {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/40" />
-        
-        {/* Quote and branding */}
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <div className="space-y-6">
             <p className="text-white text-xl font-semibold leading-relaxed max-w-lg">
@@ -73,7 +49,6 @@ export default function LoginPage() {
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 lg:py-0">
         <div className="w-full max-w-md space-y-8">
-          {/* Back to Home */}
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm text-foreground-secondary hover:text-primary transition-colors"
@@ -82,7 +57,6 @@ export default function LoginPage() {
             Back to Home
           </Link>
 
-          {/* Header */}
           <div className="text-center space-y-3">
             <h1 className="text-4xl font-bold text-foreground">SmartHelmet</h1>
             <p className="text-foreground-secondary text-lg">Mining Safety Helmet Monitoring</p>
@@ -115,13 +89,9 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* Email/Username */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-foreground">
-                Email or Username
-              </label>
+              <label className="block text-sm font-medium text-foreground">Email or Username</label>
               <input
                 type="email"
                 value={email}
@@ -132,11 +102,8 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-foreground">
-                Password
-              </label>
+              <label className="block text-sm font-medium text-foreground">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -151,21 +118,13 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground-tertiary hover:text-foreground transition-colors"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            {/* Forgot Password & Remember Me */}
             <div className="flex items-center justify-between">
-              <Link
-                href="/forgot-password"
-                className="text-sm text-primary hover:text-primary-dark transition-colors"
-              >
+              <Link href="/forgot-password" className="text-sm text-primary hover:text-primary-dark transition-colors">
                 Forgot password?
               </Link>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -179,24 +138,21 @@ export default function LoginPage() {
               </label>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-500">
-                {error}
+                {error instanceof Error ? error.message : 'Invalid credentials'}
               </div>
             )}
 
-            {/* Login Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isPending}
               className="w-full py-3 px-4 bg-primary hover:bg-primary-dark text-primary-foreground font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Logging in...' : 'Log in'}
+              {isPending ? 'Logging in...' : 'Log in'}
             </button>
           </form>
 
-          {/* Demo Credentials */}
           <div className="bg-background-secondary border border-border/50 rounded-lg p-4 space-y-2">
             <p className="text-xs font-medium text-foreground-secondary uppercase">Demo Credentials</p>
             <div className="space-y-1 text-xs text-foreground-tertiary">

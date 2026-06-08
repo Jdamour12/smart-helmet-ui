@@ -36,7 +36,7 @@ interface StatusDistributionProps {
 }
 
 export function StatusDistribution({ helmets }: StatusDistributionProps) {
-  const worn = helmets.filter((h) => h.helmetWorn).length;
+  const worn = helmets.filter((h) => h.helmet_wear).length;
   const notWorn = helmets.length - worn;
 
   return (

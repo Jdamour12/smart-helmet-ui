@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { analytics, helmets as helmetsApi } from '@/lib/api';
-import type { Helmet } from '@/lib/api';
+import { useImpacts, useImpactsWeeklyTrend } from '@/hooks/use-analytics';
+import { useHelmets } from '@/hooks/use-helmets';
+import type { Helmet } from '@/lib/types';
 import { AlertTriangle, Shield, TrendingDown, Heart } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -14,34 +14,13 @@ interface ImpactData {
 }
 
 export default function ImpactDetection() {
-  const [impactData, setImpactData]   = useState<ImpactData | null>(null);
-  const [weeklyTrend, setWeeklyTrend] = useState<{ name: string; value: number }[]>([]);
-  const [helmetList, setHelmets]      = useState<Helmet[]>([]);
-  const [loading, setLoading]         = useState(true);
+  const { data: impactRaw, isLoading: impactLoading } = useImpacts();
+  const { data: trendRaw }                             = useImpactsWeeklyTrend();
+  const { data: helmetsRaw, isLoading: helmLoading }  = useHelmets();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [imp, tr, hlms] = await Promise.all([
-          analytics.impacts(),
-          analytics.impactsWeeklyTrend().catch(() => null),
-          helmetsApi.list(),
-        ]);
-
-        setImpactData(imp as ImpactData);
-        setHelmets(hlms as Helmet[]);
-
-        if (tr) {
-          const raw = tr as { trend?: { day: string; count: number }[] } | { day: string; count: number }[];
-          const arr = Array.isArray(raw) ? raw : (raw as { trend?: { day: string; count: number }[] }).trend ?? [];
-          setWeeklyTrend(arr.map((d: { day: string; count: number }) => ({ name: d.day, value: d.count })));
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const impactData = impactRaw as ImpactData | undefined;
+  const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
+  const loading    = impactLoading || helmLoading;
 
   if (loading) {
     return (
@@ -51,10 +30,21 @@ export default function ImpactDetection() {
     );
   }
 
+  const raw = trendRaw as { trend?: { day: string; count: number }[] } | { day: string; count: number }[] | undefined;
+  const arr = raw
+    ? Array.isArray(raw)
+      ? raw
+      : (raw as { trend?: { day: string; count: number }[] }).trend ?? []
+    : [];
+  const weeklyTrend = arr.map((d: { day: string; count: number }) => ({ name: d.day, value: d.count }));
+
   const helmetsWithImpacts = impactData?.helmets_with_impacts ?? helmetList.filter(h => h.impact_detected).length;
   const totalEvents        = impactData?.total_vibration_events ?? 0;
   const safeHelmets        = helmetList.filter(h => !h.impact_detected).length;
-  const avgPerDay          = impactData?.avg_per_day ?? (weeklyTrend.length > 0 ? (weeklyTrend.reduce((s, d) => s + d.value, 0) / weeklyTrend.length).toFixed(1) : '0.0');
+  const avgPerDay          = impactData?.avg_per_day
+    ?? (weeklyTrend.length > 0
+      ? (weeklyTrend.reduce((s, d) => s + d.value, 0) / weeklyTrend.length).toFixed(1)
+      : '0.0');
   const impactedHelmets    = helmetList.filter(h => h.impact_detected);
 
   return (

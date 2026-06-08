@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { analytics, helmets as helmetsApi } from '@/lib/api';
-import type { Helmet } from '@/lib/api';
+import { useGasLevels } from '@/hooks/use-analytics';
+import { useHelmets } from '@/hooks/use-helmets';
+import type { Helmet } from '@/lib/types';
 import { Zap, TrendingDown, AlertTriangle, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -14,25 +14,12 @@ interface GasData {
 }
 
 export default function GasAnalytics() {
-  const [gasData, setGasData]     = useState<GasData | null>(null);
-  const [helmetList, setHelmets]  = useState<Helmet[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const { data: gasRaw, isLoading: gasLoading } = useGasLevels();
+  const { data: helmetsRaw, isLoading: helmetsLoading } = useHelmets();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [gas, hlms] = await Promise.all([
-          analytics.gasLevels(),
-          helmetsApi.list(),
-        ]);
-        setGasData(gas as GasData);
-        setHelmets(hlms as Helmet[]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const gasData    = gasRaw as GasData | undefined;
+  const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
+  const loading    = gasLoading || helmetsLoading;
 
   if (loading) {
     return (

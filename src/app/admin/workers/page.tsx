@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Eye, X, Mail, Phone, Briefcase, Users, Calendar, HardHat, Wifi } from 'lucide-react';
-import { workers as workersApi } from '@/lib/api';
-import type { Worker } from '@/lib/api';
+import { useState } from 'react';
+import { Eye, X, Mail, Phone, Briefcase, Users, Calendar, HardHat } from 'lucide-react';
+import { useWorkers } from '@/hooks/use-workers';
+import type { Worker } from '@/lib/types';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -147,16 +147,12 @@ function ViewWorkerDrawer({ worker, onClose }: { worker: Worker | null; onClose:
 
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function WorkersPage() {
-  const [workerList, setWorkerList] = useState<Worker[]>([]);
   const [viewWorker, setViewWorker] = useState<Worker | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: workersRaw, isLoading } = useWorkers();
+  const workerList = (workersRaw as Worker[] | undefined) ?? [];
 
-  useEffect(() => {
-    workersApi.list().then(data => { setWorkerList(data); setLoading(false); });
-  }, []);
-
-  const activeCount = workerList.filter(w => w.status === 'active').length;
-  const inactiveCount = workerList.length - activeCount;
+  const activeCount    = workerList.filter(w => w.status === 'active').length;
+  const inactiveCount  = workerList.length - activeCount;
   const activationRate = workerList.length ? Math.round((activeCount / workerList.length) * 100) : 0;
 
   return (
@@ -193,7 +189,7 @@ export default function WorkersPage() {
         {/* Table */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Workers List</h3>
-          {loading ? (
+          {isLoading ? (
             <p className="text-foreground-secondary text-sm">Loading workers...</p>
           ) : (
             <div className="overflow-x-auto">

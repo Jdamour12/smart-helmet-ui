@@ -3,8 +3,8 @@
 import { Menu, Shield, Bell, User, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { clearToken } from "@/lib/api";
-import type { User as AppUser } from "@/lib/api";
+import { clearToken } from "@/lib/http";
+import type { User as AppUser } from "@/lib/types";
 import {
   DropdownMenu,
   DropdownMenuContent,

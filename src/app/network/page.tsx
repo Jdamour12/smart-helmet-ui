@@ -5,7 +5,7 @@ import { Wifi, Signal } from 'lucide-react';
 
 export default function NetworkStatus() {
   const onlineGateways = mockGateways.filter(g => g.status === 'online').length;
-  const totalConnected = mockGateways.reduce((sum, g) => sum + g.connectedHelmets, 0);
+  const totalConnected = mockGateways.reduce((sum, g) => sum + g.connected_helmets, 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -64,7 +64,7 @@ export default function NetworkStatus() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-foreground-secondary text-sm">Connected Helmets</span>
-                    <span className="text-foreground text-sm font-medium">{gateway.connectedHelmets}</span>
+                    <span className="text-foreground text-sm font-medium">{gateway.connected_helmets}</span>
                   </div>
                 </div>
               </div>
@@ -78,19 +78,19 @@ export default function NetworkStatus() {
                 <div className="space-y-3">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-foreground text-sm">{gateway.signalStrength}%</span>
+                      <span className="text-foreground text-sm">{gateway.signal_strength}%</span>
                     </div>
                     <div className="w-full bg-background rounded-full h-2">
                       <div 
                         className={`h-full rounded-full ${
-                          gateway.signalStrength >= 80 ? 'bg-success' : gateway.signalStrength >= 60 ? 'bg-warning' : 'bg-critical'
+                          gateway.signal_strength >= 80 ? 'bg-success' : gateway.signal_strength >= 60 ? 'bg-warning' : 'bg-critical'
                         }`}
-                        style={{ width: `${gateway.signalStrength}%` }}
+                        style={{ width: `${gateway.signal_strength}%` }}
                       ></div>
                     </div>
                   </div>
                   <p className="text-xs text-foreground-tertiary">
-                    Last heartbeat: {new Date(gateway.lastHeartbeat).toLocaleTimeString()}
+                    Last heartbeat: {new Date(gateway.last_heartbeat).toLocaleTimeString()}
                   </p>
                 </div>
               </div>

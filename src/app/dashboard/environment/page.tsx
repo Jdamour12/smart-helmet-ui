@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { analytics, helmets as helmetsApi } from '@/lib/api';
-import type { Helmet } from '@/lib/api';
+import { useEnvironment } from '@/hooks/use-analytics';
+import { useHelmets } from '@/hooks/use-helmets';
+import type { Helmet } from '@/lib/types';
 import { Thermometer, Droplets, Gauge, AlertTriangle } from 'lucide-react';
 
 interface EnvData {
@@ -11,25 +11,12 @@ interface EnvData {
 }
 
 export default function EnvironmentAnalytics() {
-  const [envData, setEnvData]    = useState<EnvData | null>(null);
-  const [helmetList, setHelmets] = useState<Helmet[]>([]);
-  const [loading, setLoading]    = useState(true);
+  const { data: envRaw, isLoading: envLoading }         = useEnvironment();
+  const { data: helmetsRaw, isLoading: helmetsLoading } = useHelmets();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [env, hlms] = await Promise.all([
-          analytics.environment(),
-          helmetsApi.list(),
-        ]);
-        setEnvData(env as EnvData);
-        setHelmets(hlms as Helmet[]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const envData    = envRaw as EnvData | undefined;
+  const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
+  const loading    = envLoading || helmetsLoading;
 
   if (loading) {
     return (

@@ -1,39 +1,32 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { helmets as helmetsApi, workers as workersApi, gateways as gatewaysApi } from '@/lib/api';
-import type { Helmet, Gateway } from '@/lib/api';
+import { useState } from 'react';
+import { useHelmets, useCreateHelmet, useUpdateHelmet, useDeleteHelmet } from '@/hooks/use-helmets';
+import { useCreateWorker } from '@/hooks/use-workers';
+import { useGateways } from '@/hooks/use-gateways';
+import { useHelmetLive } from '@/hooks/use-websocket-helmets';
+import type { Helmet, Gateway } from '@/lib/types';
 import {
   Radio, Users, AlertTriangle, Zap, Plus, Eye, Edit2, Trash2,
   X, Wifi, Battery, Thermometer, Wind, Droplets,
   ShieldCheck, ShieldAlert, Activity, Clock, ChevronRight,
 } from 'lucide-react';
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://127.0.0.1:8000/ws';
-
 function Overlay({ onClick }: { onClick: () => void }) {
   return <div className="fixed inset-0 top-[69px] bg-black/20 z-40 backdrop-blur-[1px]" onClick={onClick} />;
-}
-
-/* ─── Live sensor readings shape from WebSocket ──────────── */
-interface LiveReading {
-  temperature: number;
-  humidity: number;
-  co_ppm: number;
-  gas_level: number;
-  vibration_detected: boolean;
-  helmet_worn: boolean;
-  recorded_at: string;
 }
 
 /* ─── Add Worker drawer ──────────────────────────────────── */
 function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: () => void; gateways: Gateway[] }) {
   const [form, setForm] = useState({ name: '', department: '', phone: '', gateway_id: '' });
+  const { mutate: createWorker } = useCreateWorker();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    await workersApi.create({ name: form.name, department: form.department, phone: form.phone, gateway_id: form.gateway_id || undefined });
-    onClose();
+    createWorker(
+      { name: form.name, department: form.department, phone: form.phone, gateway_id: form.gateway_id || undefined },
+      { onSuccess: () => onClose() },
+    );
   };
 
   if (!open) return null;
@@ -92,29 +85,17 @@ function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: 
 
 /* ─── View Worker drawer with live WebSocket data ────────── */
 function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; onClose: () => void; onEdit: (h: Helmet) => void }) {
-  const [live, setLive] = useState<LiveReading | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-
-  useEffect(() => {
-    if (!helmet) { wsRef.current?.close(); return; }
-
-    const ws = new WebSocket(`${WS_URL}/helmets/${helmet.id}`);
-    wsRef.current = ws;
-    ws.onmessage = (e) => {
-      try { setLive(JSON.parse(e.data) as LiveReading); } catch { /* ignore */ }
-    };
-    return () => { ws.close(); };
-  }, [helmet?.id]);
+  const live = useHelmetLive(helmet?.id ?? null);
 
   if (!helmet) return null;
 
-  const co   = live?.co_ppm   ?? helmet.co   ?? 0;
+  const co   = live?.co_ppm    ?? helmet.co   ?? 0;
   const ch4  = live?.gas_level ?? helmet.ch4  ?? 0;
   const temp = live?.temperature ?? helmet.temperature ?? 0;
   const hum  = live?.humidity    ?? helmet.humidity    ?? 0;
-  const worn = live?.helmet_worn    ?? helmet.helmet_wear;
-  const impact = live?.vibration_detected ?? helmet.impact_detected;
-  const lastTs = live?.recorded_at ?? helmet.last_update;
+  const worn   = live?.helmet_worn         ?? helmet.helmet_wear;
+  const impact = live?.vibration_detected  ?? helmet.impact_detected;
+  const lastTs = live?.recorded_at         ?? helmet.last_update;
 
   const initials = (helmet.worker_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
@@ -258,13 +239,18 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
 
 /* ─── Edit Worker drawer ─────────────────────────────────── */
 function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null; onClose: () => void; gateways: Gateway[] }) {
-  if (!helmet) return null;
-  const [form, setForm] = useState({ name: helmet.worker_name, gateway_id: helmet.gateway_id, status: helmet.status as 'active' | 'inactive' | 'alarm' });
+  const { mutate: updateHelmet } = useUpdateHelmet();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  if (!helmet) return null;
+
+  const [form, setForm] = useState({ gateway_id: helmet.gateway_id, status: helmet.status as 'active' | 'inactive' | 'alarm' });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    await helmetsApi.update(helmet.id, { status: form.status, gateway_id: form.gateway_id });
-    onClose();
+    updateHelmet(
+      { id: helmet.id, data: { status: form.status, gateway_id: form.gateway_id } },
+      { onSuccess: () => onClose() },
+    );
   };
 
   return (
@@ -282,7 +268,7 @@ function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null
           <form id="edit-worker-form" onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Worker Name</label>
-              <input readOnly value={form.name} className="w-full px-3 py-2.5 text-sm bg-background-tertiary border border-border rounded-lg text-foreground-secondary cursor-not-allowed" />
+              <input readOnly value={helmet.worker_name} className="w-full px-3 py-2.5 text-sm bg-background-tertiary border border-border rounded-lg text-foreground-secondary cursor-not-allowed" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Helmet ID</label>
@@ -319,28 +305,21 @@ function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null
 
 /* ─── Main Page ──────────────────────────────────────────── */
 export default function HelmetMonitoring() {
-  const [helmetList, setHelmetList]     = useState<Helmet[]>([]);
-  const [gwList, setGwList]             = useState<Gateway[]>([]);
   const [addWorkerOpen, setAddWorkerOpen] = useState(false);
-  const [viewHelmet, setViewHelmet]     = useState<Helmet | null>(null);
-  const [editHelmet, setEditHelmet]     = useState<Helmet | null>(null);
-  const [loading, setLoading]           = useState(true);
+  const [viewHelmet, setViewHelmet]       = useState<Helmet | null>(null);
+  const [editHelmet, setEditHelmet]       = useState<Helmet | null>(null);
 
-  const load = async () => {
-    const [h, g] = await Promise.all([helmetsApi.list(), gatewaysApi.list()]);
-    setHelmetList(h as Helmet[]);
-    setGwList(g as Gateway[]);
-    setLoading(false);
-  };
+  const { data: helmetsRaw, isLoading } = useHelmets();
+  const { data: gwRaw }                 = useGateways();
+  const { mutate: deleteHelmet }        = useDeleteHelmet();
 
-  useEffect(() => { load(); }, []);
+  const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
+  const gwList     = (gwRaw as Gateway[] | undefined) ?? [];
 
   const activeCount   = helmetList.filter(h => h.status === 'active').length;
   const criticalCount = helmetList.filter(h => h.status === 'alarm').length;
   const avgBattery    = helmetList.length ? (helmetList.reduce((s, h) => s + (h.battery ?? 0), 0) / helmetList.length).toFixed(1) : '0';
   const wearingCount  = helmetList.filter(h => h.helmet_wear).length;
-
-  const handleDelete = async (id: string) => { await helmetsApi.delete(id); load(); };
 
   return (
     <>
@@ -357,10 +336,10 @@ export default function HelmetMonitoring() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Active Helmets',    value: activeCount,   sub: `of ${helmetList.length} total`, color: 'primary',  Icon: Radio },
-            { label: 'Helmet Compliance', value: wearingCount,  sub: 'Workers wearing helmets',        color: 'success',  Icon: Users },
-            { label: 'Critical Status',   value: criticalCount, sub: 'Requiring attention',            color: 'critical', Icon: AlertTriangle },
-            { label: 'Avg Battery',       value: `${avgBattery}%`, sub: 'Fleet average',              color: 'warning',  Icon: Zap },
+            { label: 'Active Helmets',    value: activeCount,      sub: `of ${helmetList.length} total`, color: 'primary',  Icon: Radio },
+            { label: 'Helmet Compliance', value: wearingCount,     sub: 'Workers wearing helmets',        color: 'success',  Icon: Users },
+            { label: 'Critical Status',   value: criticalCount,    sub: 'Requiring attention',            color: 'critical', Icon: AlertTriangle },
+            { label: 'Avg Battery',       value: `${avgBattery}%`, sub: 'Fleet average',                 color: 'warning',  Icon: Zap },
           ].map(({ label, value, sub, color, Icon }) => (
             <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
               <div className="flex items-start justify-between">
@@ -377,7 +356,7 @@ export default function HelmetMonitoring() {
 
         <div className="bg-background-secondary border border-border rounded-lg p-6 overflow-x-auto">
           <h3 className="text-lg font-semibold text-foreground mb-4">Helmet Details</h3>
-          {loading ? <p className="text-foreground-secondary text-sm">Loading helmets...</p> : (
+          {isLoading ? <p className="text-foreground-secondary text-sm">Loading helmets...</p> : (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
@@ -393,7 +372,7 @@ export default function HelmetMonitoring() {
                     <td className="px-4 py-4">
                       <span className={`text-xs px-2 py-1 rounded font-medium flex items-center gap-1 w-fit ${helmet.status === 'active' ? 'bg-success/10 text-success' : helmet.status === 'alarm' ? 'bg-critical/10 text-critical' : 'bg-foreground-tertiary/10 text-foreground-tertiary'}`}>
                         <span className={`w-2 h-2 rounded-full ${helmet.status === 'active' ? 'bg-success' : helmet.status === 'alarm' ? 'bg-critical' : 'bg-foreground-tertiary'}`} />
-                        {(helmet.status ?? "inactive").charAt(0).toUpperCase() + (helmet.status ?? "inactive").slice(1)}
+                        {(helmet.status ?? 'inactive').charAt(0).toUpperCase() + (helmet.status ?? 'inactive').slice(1)}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-foreground text-sm">{(helmet.co ?? 0).toFixed(1)} ppm / {(helmet.ch4 ?? 0).toFixed(2)}%</td>
@@ -415,7 +394,7 @@ export default function HelmetMonitoring() {
                       <div className="flex items-center gap-2">
                         <button onClick={() => setViewHelmet(helmet)} className="p-1.5 hover:bg-background rounded transition-colors" title="View"><Eye className="w-4 h-4 text-primary" /></button>
                         <button onClick={() => setEditHelmet(helmet)} className="p-1.5 hover:bg-background rounded transition-colors" title="Edit"><Edit2 className="w-4 h-4 text-warning" /></button>
-                        <button onClick={() => handleDelete(helmet.id)} className="p-1.5 hover:bg-background rounded transition-colors" title="Delete"><Trash2 className="w-4 h-4 text-critical" /></button>
+                        <button onClick={() => deleteHelmet(helmet.id)} className="p-1.5 hover:bg-background rounded transition-colors" title="Delete"><Trash2 className="w-4 h-4 text-critical" /></button>
                       </div>
                     </td>
                   </tr>
@@ -426,9 +405,9 @@ export default function HelmetMonitoring() {
         </div>
       </div>
 
-      <AddWorkerDrawer open={addWorkerOpen} onClose={() => { setAddWorkerOpen(false); load(); }} gateways={gwList} />
+      <AddWorkerDrawer open={addWorkerOpen} onClose={() => setAddWorkerOpen(false)} gateways={gwList} />
       <ViewWorkerDrawer helmet={viewHelmet} onClose={() => setViewHelmet(null)} onEdit={h => { setViewHelmet(null); setEditHelmet(h); }} />
-      <EditWorkerDrawer helmet={editHelmet} onClose={() => { setEditHelmet(null); load(); }} gateways={gwList} />
+      <EditWorkerDrawer helmet={editHelmet} onClose={() => setEditHelmet(null)} gateways={gwList} />
     </>
   );
 }

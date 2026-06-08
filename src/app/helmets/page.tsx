@@ -21,7 +21,7 @@ export default function HelmetMonitoring() {
               {/* Worker Info */}
               <div>
                 <p className="text-foreground-secondary text-sm">Worker</p>
-                <p className="text-lg font-semibold text-foreground mt-1">{helmet.workerName}</p>
+                <p className="text-lg font-semibold text-foreground mt-1">{helmet.worker_name}</p>
                 <p className="text-xs text-foreground-tertiary mt-2">{helmet.id}</p>
               </div>
 
@@ -92,8 +92,8 @@ export default function HelmetMonitoring() {
                   <p className="text-foreground-secondary text-sm">Helmet Worn</p>
                   <Shield className="w-4 h-4 text-primary" />
                 </div>
-                <p className={`text-sm font-semibold mt-1 ${helmet.helmetWear ? 'text-success' : 'text-critical'}`}>
-                  {helmet.helmetWear ? 'Yes' : 'No'}
+                <p className={`text-sm font-semibold mt-1 ${helmet.helmet_wear ? 'text-success' : 'text-critical'}`}>
+                  {helmet.helmet_wear ? 'Yes' : 'No'}
                 </p>
               </div>
 
@@ -103,8 +103,8 @@ export default function HelmetMonitoring() {
                   <p className="text-foreground-secondary text-sm">Impact</p>
                   <AlertTriangle className="w-4 h-4 text-warning" />
                 </div>
-                <p className={`text-sm font-semibold mt-1 ${helmet.impactDetected ? 'text-critical' : 'text-success'}`}>
-                  {helmet.impactDetected ? 'Detected' : 'None'}
+                <p className={`text-sm font-semibold mt-1 ${helmet.impact_detected ? 'text-critical' : 'text-success'}`}>
+                  {helmet.impact_detected ? 'Detected' : 'None'}
                 </p>
               </div>
 
@@ -120,7 +120,7 @@ export default function HelmetMonitoring() {
 
             {/* Last Update */}
             <div className="mt-4 text-xs text-foreground-tertiary">
-              Updated: {new Date(helmet.lastUpdate).toLocaleTimeString()}
+              Updated: {new Date(helmet.last_update).toLocaleTimeString()}
             </div>
           </div>
         ))}

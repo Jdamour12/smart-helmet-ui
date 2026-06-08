@@ -143,7 +143,7 @@ export default function EnvironmentAnalytics() {
 
                 return (
                   <tr key={helmet.id} className="border-b border-border/50 hover:bg-background/50">
-                    <td className="px-4 py-3 text-foreground text-sm">{helmet.workerName}</td>
+                    <td className="px-4 py-3 text-foreground text-sm">{helmet.worker_name}</td>
                     <td className="px-4 py-3 text-foreground text-sm">{helmet.temperature}°C</td>
                     <td className="px-4 py-3 text-foreground text-sm">{helmet.humidity}%</td>
                     <td className="px-4 py-3">

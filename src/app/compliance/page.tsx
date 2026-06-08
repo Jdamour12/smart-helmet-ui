@@ -12,9 +12,9 @@ import {
 } from "recharts";
 
 export default function ComplianceReports() {
-  const helmetWearingCount = mockHelmets.filter((h) => h.helmetWear).length;
+  const helmet_wearingCount = mockHelmets.filter((h) => h.helmet_wear).length;
   const complianceRate = Math.round(
-    (helmetWearingCount / mockHelmets.length) * 100,
+    (helmet_wearingCount / mockHelmets.length) * 100,
   );
 
   return (
@@ -38,7 +38,7 @@ export default function ComplianceReports() {
             {complianceRate}%
           </p>
           <p className="text-xs text-foreground-tertiary mt-2">
-            {helmetWearingCount} of {mockHelmets.length} workers
+            {helmet_wearingCount} of {mockHelmets.length} workers
           </p>
         </div>
         <div className="bg-background-secondary border border-border rounded-lg p-6">
@@ -51,7 +51,7 @@ export default function ComplianceReports() {
             Non-Compliance Events
           </p>
           <p className="text-3xl font-bold text-warning mt-2">
-            {mockHelmets.filter((h) => !h.helmetWear).length}
+            {mockHelmets.filter((h) => !h.helmet_wear).length}
           </p>
           <p className="text-xs text-foreground-tertiary mt-2">This period</p>
         </div>
@@ -114,20 +114,20 @@ export default function ComplianceReports() {
                   className="border-b border-border/50 hover:bg-background/50"
                 >
                   <td className="px-4 py-3 text-foreground text-sm">
-                    {helmet.workerName}
+                    {helmet.worker_name}
                   </td>
                   <td className="px-4 py-3 text-foreground text-sm">
-                    {helmet.helmetWear ? "✓ Yes" : "✗ No"}
+                    {helmet.helmet_wear ? "✓ Yes" : "✗ No"}
                   </td>
                   <td className="px-4 py-3">
                     <span
                       className={`text-xs px-2 py-1 rounded font-medium ${
-                        helmet.helmetWear
+                        helmet.helmet_wear
                           ? "bg-success/10 text-success"
                           : "bg-critical/10 text-critical"
                       }`}
                     >
-                      {helmet.helmetWear ? "Compliant" : "Non-Compliant"}
+                      {helmet.helmet_wear ? "Compliant" : "Non-Compliant"}
                     </span>
                   </td>
                 </tr>

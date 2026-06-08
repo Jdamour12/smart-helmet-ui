@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Sidebar } from '@/components/sidebar';
-import { clearToken } from '@/lib/api';
+import { clearToken } from '@/lib/http';
 
 const IDLE_TIMEOUT_MS  = 30 * 60 * 1000; // 30 minutes
 const WARN_BEFORE_MS   = 60 * 1000;       // warn 60 seconds before

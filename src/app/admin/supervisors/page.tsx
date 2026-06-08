@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Plus, Eye, Edit2, Trash2, X,
   Mail, MapPin, Users, Wifi,
   Calendar, Clock, ChevronRight, Shield,
 } from 'lucide-react';
-import { supervisors as supervisorsApi } from '@/lib/api';
-import type { Supervisor } from '@/lib/api';
+import {
+  useSupervisors, useCreateSupervisor, useUpdateSupervisor, useDeleteSupervisor,
+} from '@/hooks/use-supervisors';
+import type { Supervisor } from '@/lib/types';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -22,13 +24,16 @@ function Overlay({ onClick }: { onClick: () => void }) {
 /* ─── Add Supervisor Drawer ───────────────────────────────── */
 function AddSupervisorDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [form, setForm] = useState({ name: '', email: '', location: '', phone: '', gateways: '1' });
+  const { mutate: createSupervisor, isPending } = useCreateSupervisor();
 
   if (!open) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    await supervisorsApi.create({ name: form.name, email: form.email, department: form.location });
-    onClose();
+    createSupervisor(
+      { name: form.name, email: form.email, department: form.location },
+      { onSuccess: onClose },
+    );
   };
 
   return (
@@ -121,10 +126,10 @@ function AddSupervisorDrawer({ open, onClose }: { open: boolean; onClose: () => 
               border border-border rounded-lg hover:bg-background-tertiary transition-colors">
             Cancel
           </button>
-          <button type="submit" form="add-sup-form"
+          <button type="submit" form="add-sup-form" disabled={isPending}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-primary-foreground
-              bg-primary rounded-lg hover:bg-primary-dark transition-colors">
-            Add Supervisor
+              bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+            {isPending ? 'Adding...' : 'Add Supervisor'}
           </button>
         </div>
       </div>
@@ -170,7 +175,7 @@ function ViewSupervisorDrawer({
                     supervisor.status === 'active' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${supervisor.status === 'active' ? 'bg-success' : 'bg-warning'}`} />
-                    {(supervisor.status ?? "inactive").charAt(0).toUpperCase() + (supervisor.status ?? "inactive").slice(1)}
+                    {(supervisor.status ?? 'inactive').charAt(0).toUpperCase() + (supervisor.status ?? 'inactive').slice(1)}
                   </span>
                 </div>
               </div>
@@ -203,7 +208,7 @@ function ViewSupervisorDrawer({
                 </div>
                 <div>
                   <p className="text-xs text-foreground-tertiary font-medium">Zone / Location</p>
-                  <p className="text-sm font-semibold text-foreground mt-0.5">{supervisor.location}</p>
+                  <p className="text-sm font-semibold text-foreground mt-0.5">{supervisor.location ?? supervisor.department}</p>
                 </div>
               </div>
             </div>
@@ -218,7 +223,7 @@ function ViewSupervisorDrawer({
                   <Users className="w-4 h-4 text-foreground-secondary" />
                   <span className="text-xs font-semibold text-foreground-secondary">Workers</span>
                 </div>
-                <p className="text-4xl font-bold text-foreground">{supervisor.assignedWorkers}</p>
+                <p className="text-4xl font-bold text-foreground">{supervisor.worker_count ?? 0}</p>
                 <p className="text-xs text-foreground-tertiary mt-1">assigned workers</p>
               </div>
               <div className="p-5 rounded-2xl border border-border bg-background">
@@ -226,32 +231,38 @@ function ViewSupervisorDrawer({
                   <Wifi className="w-4 h-4 text-foreground-secondary" />
                   <span className="text-xs font-semibold text-foreground-secondary">Gateways</span>
                 </div>
-                <p className="text-4xl font-bold text-foreground">{supervisor.assignedGateways}</p>
+                <p className="text-4xl font-bold text-foreground">{supervisor.gateway_count ?? 0}</p>
                 <p className="text-xs text-foreground-tertiary mt-1">assigned gateways</p>
               </div>
             </div>
           </section>
 
           {/* Account Info */}
-          <section>
-            <h3 className="text-xs font-bold text-foreground-tertiary uppercase tracking-widest mb-4">Account Information</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 rounded-2xl border border-border bg-background">
-                <Calendar className="w-4 h-4 text-foreground-secondary mb-2" />
-                <p className="text-sm font-bold text-foreground">
-                  {new Date(supervisor.joinDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                </p>
-                <p className="text-xs text-foreground-tertiary mt-0.5">Join date</p>
+          {(supervisor.created_at || supervisor.last_active) && (
+            <section>
+              <h3 className="text-xs font-bold text-foreground-tertiary uppercase tracking-widest mb-4">Account Information</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {supervisor.created_at && (
+                  <div className="p-4 rounded-2xl border border-border bg-background">
+                    <Calendar className="w-4 h-4 text-foreground-secondary mb-2" />
+                    <p className="text-sm font-bold text-foreground">
+                      {new Date(supervisor.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                    <p className="text-xs text-foreground-tertiary mt-0.5">Join date</p>
+                  </div>
+                )}
+                {supervisor.last_active && (
+                  <div className="p-4 rounded-2xl border border-border bg-background">
+                    <Clock className="w-4 h-4 text-foreground-secondary mb-2" />
+                    <p className="text-sm font-bold text-foreground">
+                      {new Date(supervisor.last_active).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    <p className="text-xs text-foreground-tertiary mt-0.5">Last active</p>
+                  </div>
+                )}
               </div>
-              <div className="p-4 rounded-2xl border border-border bg-background">
-                <Clock className="w-4 h-4 text-foreground-secondary mb-2" />
-                <p className="text-sm font-bold text-foreground">
-                  {new Date(supervisor.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-                <p className="text-xs text-foreground-tertiary mt-0.5">Last active</p>
-              </div>
-            </div>
-          </section>
+            </section>
+          )}
         </div>
 
         {/* Footer */}
@@ -274,20 +285,24 @@ function ViewSupervisorDrawer({
 
 /* ─── Edit Supervisor Drawer ──────────────────────────────── */
 function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor | null; onClose: () => void }) {
+  const { mutate: updateSupervisor, isPending } = useUpdateSupervisor();
+
   if (!supervisor) return null;
 
   const [form, setForm] = useState({
     name:     supervisor.name,
     email:    supervisor.email,
-    location: supervisor.location,
-    gateways: String(supervisor.assignedGateways),
-    status:   supervisor.status as 'active' | 'inactive',
+    location: supervisor.location ?? supervisor.department ?? '',
+    gateways: String(supervisor.gateway_count ?? 1),
+    status:   (supervisor.status ?? 'active') as 'active' | 'inactive',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    await supervisorsApi.update(supervisor.id, { name: form.name, email: form.email, department: form.location, status: form.status });
-    onClose();
+    updateSupervisor(
+      { id: supervisor.id, data: { name: form.name, email: form.email, department: form.location, status: form.status } },
+      { onSuccess: onClose },
+    );
   };
 
   return (
@@ -380,10 +395,10 @@ function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor 
               border border-border rounded-lg hover:bg-background-tertiary transition-colors">
             Cancel
           </button>
-          <button type="submit" form="edit-sup-form"
+          <button type="submit" form="edit-sup-form" disabled={isPending}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-primary-foreground
-              bg-primary rounded-lg hover:bg-primary-dark transition-colors">
-            Save Changes
+              bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+            {isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -393,21 +408,15 @@ function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor 
 
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function SupervisorsPage() {
-  const [supList, setSupList]         = useState<Supervisor[]>([]);
-  const [addOpen, setAddOpen]         = useState(false);
-  const [viewSup, setViewSup]         = useState<Supervisor | null>(null);
-  const [editSup, setEditSup]         = useState<Supervisor | null>(null);
-  const [loading, setLoading]         = useState(true);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewSup, setViewSup] = useState<Supervisor | null>(null);
+  const [editSup, setEditSup] = useState<Supervisor | null>(null);
 
-  const load = () => supervisorsApi.list().then(data => { setSupList(data); setLoading(false); });
-  useEffect(() => { load(); }, []);
+  const { data: supsRaw, isLoading } = useSupervisors();
+  const { mutate: deleteSupervisor }  = useDeleteSupervisor();
 
+  const supList     = (supsRaw as Supervisor[] | undefined) ?? [];
   const activeCount = supList.filter(s => s.status === 'active').length;
-
-  const handleDelete = async (id: string) => {
-    await supervisorsApi.delete(id);
-    load();
-  };
 
   return (
     <>
@@ -448,7 +457,7 @@ export default function SupervisorsPage() {
         {/* Table */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Supervisors List</h3>
-          {loading ? (
+          {isLoading ? (
             <p className="text-foreground-secondary text-sm">Loading supervisors...</p>
           ) : (
             <div className="overflow-x-auto">
@@ -470,7 +479,7 @@ export default function SupervisorsPage() {
                       <td className="py-3 px-4">
                         <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                           sup.status === 'active' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
-                        }`}>{(sup.status ?? "inactive").charAt(0).toUpperCase() + (sup.status ?? "inactive").slice(1)}</span>
+                        }`}>{(sup.status ?? 'inactive').charAt(0).toUpperCase() + (sup.status ?? 'inactive').slice(1)}</span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
@@ -480,7 +489,7 @@ export default function SupervisorsPage() {
                           <button onClick={() => setEditSup(sup)} className="p-2 hover:bg-background rounded transition-colors" title="Edit">
                             <Edit2 className="w-4 h-4 text-primary" />
                           </button>
-                          <button onClick={() => handleDelete(sup.id)} className="p-2 hover:bg-background rounded transition-colors" title="Delete">
+                          <button onClick={() => deleteSupervisor(sup.id)} className="p-2 hover:bg-background rounded transition-colors" title="Delete">
                             <Trash2 className="w-4 h-4 text-critical" />
                           </button>
                         </div>
@@ -494,13 +503,13 @@ export default function SupervisorsPage() {
         </div>
       </div>
 
-      <AddSupervisorDrawer open={addOpen} onClose={() => { setAddOpen(false); load(); }} />
+      <AddSupervisorDrawer open={addOpen} onClose={() => setAddOpen(false)} />
       <ViewSupervisorDrawer
         supervisor={viewSup}
         onClose={() => setViewSup(null)}
         onEdit={s => { setViewSup(null); setEditSup(s); }}
       />
-      <EditSupervisorDrawer supervisor={editSup} onClose={() => { setEditSup(null); load(); }} />
+      <EditSupervisorDrawer supervisor={editSup} onClose={() => setEditSup(null)} />
     </>
   );
 }

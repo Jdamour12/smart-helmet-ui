@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { gateways as gatewaysApi, analytics } from '@/lib/api';
-import type { Gateway } from '@/lib/api';
+import { useNetworkHealth } from '@/hooks/use-analytics';
+import { useGateways } from '@/hooks/use-gateways';
+import type { Gateway } from '@/lib/types';
 import { Wifi, Activity, RadioTower, TrendingUp } from 'lucide-react';
 
 interface NetworkHealth {
@@ -12,25 +12,12 @@ interface NetworkHealth {
 }
 
 export default function NetworkStatus() {
-  const [gwList, setGwList]     = useState<Gateway[]>([]);
-  const [health, setHealth]     = useState<NetworkHealth | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const { data: gwRaw, isLoading: gwLoading }       = useGateways();
+  const { data: healthRaw, isLoading: healthLoading } = useNetworkHealth();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [gws, net] = await Promise.all([
-          gatewaysApi.list(),
-          analytics.networkHealth(),
-        ]);
-        setGwList(gws as Gateway[]);
-        setHealth(net as NetworkHealth);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const gwList = (gwRaw as Gateway[] | undefined) ?? [];
+  const health = healthRaw as NetworkHealth | undefined;
+  const loading = gwLoading || healthLoading;
 
   if (loading) {
     return (
@@ -40,15 +27,15 @@ export default function NetworkStatus() {
     );
   }
 
-  const onlineGateways    = health?.online ?? gwList.filter(g => g.status === 'online').length;
-  const totalGateways     = health?.total_gateways ?? gwList.length;
-  const totalConnected    = gwList.reduce((s, g) => s + (g.connected_helmets ?? 0), 0);
-  const avgSignal         = gwList.length > 0
+  const onlineGateways = health?.online ?? gwList.filter(g => g.status === 'online').length;
+  const totalGateways  = health?.total_gateways ?? gwList.length;
+  const totalConnected = gwList.reduce((s, g) => s + (g.connected_helmets ?? 0), 0);
+  const avgSignal      = gwList.length > 0
     ? (gwList.reduce((s, g) => s + (g.signal_strength ?? 0), 0) / gwList.length).toFixed(0)
     : '0';
-  const deliveryRate      = ((health?.avg_packet_delivery_rate ?? 0) * 100).toFixed(1);
-  const packetLoss        = (100 - parseFloat(deliveryRate)).toFixed(1);
-  const gwAvailPct        = totalGateways > 0 ? ((onlineGateways / totalGateways) * 100).toFixed(0) : '0';
+  const deliveryRate   = ((health?.avg_packet_delivery_rate ?? 0) * 100).toFixed(1);
+  const packetLoss     = (100 - parseFloat(deliveryRate)).toFixed(1);
+  const gwAvailPct     = totalGateways > 0 ? ((onlineGateways / totalGateways) * 100).toFixed(0) : '0';
 
   return (
     <div className="p-6 space-y-6">
@@ -128,7 +115,7 @@ export default function NetworkStatus() {
                     <span className={`text-xs px-2 py-1 rounded font-medium ${
                       gw.status === 'online' ? 'bg-success/10 text-success' : 'bg-critical/10 text-critical'
                     }`}>
-                      {(gw.status ?? "offline").charAt(0).toUpperCase() + (gw.status ?? "offline").slice(1)}
+                      {(gw.status ?? 'offline').charAt(0).toUpperCase() + (gw.status ?? 'offline').slice(1)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-foreground text-sm">{gw.connected_helmets} devices</td>
@@ -191,7 +178,7 @@ export default function NetworkStatus() {
                   <div className="h-2 bg-background rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary"
-                      style={{ width: totalConnected > 0 ? `${(gw.connected_helmets / totalConnected) * 100}%` : '0%' }}
+                      style={{ width: totalConnected > 0 ? `${((gw.connected_helmets ?? 0) / totalConnected) * 100}%` : '0%' }}
                     />
                   </div>
                 </div>

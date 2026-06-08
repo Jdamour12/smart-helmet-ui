@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Plus, Eye, Edit2, Trash2, Wifi, WifiOff,
   X, MapPin, Radio,
   Signal, Server, ChevronRight, CheckCircle, AlertCircle,
 } from 'lucide-react';
-import { gateways as gatewaysApi } from '@/lib/api';
-import type { Gateway } from '@/lib/api';
-
-type GatewayEx = Gateway & { ip_address?: string };
+import {
+  useGateways, useCreateGateway, useUpdateGateway, useDeleteGateway,
+} from '@/hooks/use-gateways';
+import type { Gateway } from '@/lib/types';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -24,12 +24,16 @@ function Overlay({ onClick }: { onClick: () => void }) {
 /* ─── Add Gateway Drawer ──────────────────────────────────── */
 function AddGatewayDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [form, setForm] = useState({ gatewayId: '', location: '', ipAddress: '', zone: '', status: 'online' as 'online' | 'offline' });
+  const { mutate: createGateway, isPending } = useCreateGateway();
+
   if (!open) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    await gatewaysApi.create({ id: form.gatewayId || undefined, location: form.location, status: form.status });
-    onClose();
+    createGateway(
+      { id: form.gatewayId || undefined, location: form.location, status: form.status },
+      { onSuccess: onClose },
+    );
   };
 
   return (
@@ -130,10 +134,10 @@ function AddGatewayDrawer({ open, onClose }: { open: boolean; onClose: () => voi
               border border-border rounded-lg hover:bg-background-tertiary transition-colors">
             Cancel
           </button>
-          <button type="submit" form="add-gateway-form"
+          <button type="submit" form="add-gateway-form" disabled={isPending}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-primary-foreground
-              bg-primary rounded-lg hover:bg-primary-dark transition-colors">
-            Add Gateway
+              bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+            {isPending ? 'Adding...' : 'Add Gateway'}
           </button>
         </div>
       </div>
@@ -145,13 +149,14 @@ function AddGatewayDrawer({ open, onClose }: { open: boolean; onClose: () => voi
 function ViewGatewayDrawer({
   gateway, onClose, onEdit,
 }: {
-  gateway: GatewayEx | null;
+  gateway: Gateway | null;
   onClose: () => void;
-  onEdit: (g: GatewayEx) => void;
+  onEdit: (g: Gateway) => void;
 }) {
   if (!gateway) return null;
 
-  const signalBars = Math.round((gateway.signalStrength / 100) * 4);
+  const sig      = gateway.signal_strength ?? 0;
+  const signalBars = Math.round((sig / 100) * 4);
 
   return (
     <>
@@ -187,7 +192,7 @@ function ViewGatewayDrawer({
                     <span className={`w-1.5 h-1.5 rounded-full ${
                       gateway.status === 'online' ? 'bg-success animate-pulse' : 'bg-critical'
                     }`} />
-                    {(gateway.status ?? "offline").charAt(0).toUpperCase() + (gateway.status ?? "offline").slice(1)}
+                    {(gateway.status ?? 'offline').charAt(0).toUpperCase() + (gateway.status ?? 'offline').slice(1)}
                   </span>
                 </div>
               </div>
@@ -207,34 +212,31 @@ function ViewGatewayDrawer({
               Live Metrics
             </h3>
             <div className="grid grid-cols-2 gap-4">
-              {/* Signal */}
               <div className="p-5 rounded-2xl border border-border bg-background">
                 <div className="flex items-center gap-2 mb-3">
                   <Signal className="w-4 h-4 text-foreground-secondary" />
                   <span className="text-xs font-semibold text-foreground-secondary">Signal Strength</span>
                 </div>
                 <p className={`text-4xl font-bold ${
-                  gateway.signalStrength > 70 ? 'text-success' :
-                  gateway.signalStrength > 40 ? 'text-warning' : 'text-critical'
-                }`}>{gateway.signalStrength}<span className="text-xl">%</span></p>
+                  sig > 70 ? 'text-success' : sig > 40 ? 'text-warning' : 'text-critical'
+                }`}>{sig}<span className="text-xl">%</span></p>
                 <div className="flex items-end gap-0.5 mt-2 h-4">
                   {[1,2,3,4].map(b => (
                     <div key={b} className={`w-2 rounded-sm ${
                       b <= signalBars
-                        ? gateway.signalStrength > 70 ? 'bg-success' : gateway.signalStrength > 40 ? 'bg-warning' : 'bg-critical'
+                        ? sig > 70 ? 'bg-success' : sig > 40 ? 'bg-warning' : 'bg-critical'
                         : 'bg-background-tertiary'
                     }`} style={{ height: `${b * 25}%` }} />
                   ))}
                 </div>
               </div>
 
-              {/* Connected helmets */}
               <div className="p-5 rounded-2xl border border-border bg-background">
                 <div className="flex items-center gap-2 mb-3">
                   <Radio className="w-4 h-4 text-foreground-secondary" />
                   <span className="text-xs font-semibold text-foreground-secondary">Connected Helmets</span>
                 </div>
-                <p className="text-4xl font-bold text-foreground">{gateway.connectedHelmets}</p>
+                <p className="text-4xl font-bold text-foreground">{gateway.connected_helmets ?? 0}</p>
                 <p className="text-xs text-foreground-tertiary mt-1">active devices</p>
               </div>
             </div>
@@ -247,8 +249,8 @@ function ViewGatewayDrawer({
             </h3>
             <div className="space-y-3">
               {[
-                { icon: Server,  label: 'IP Address',   value: gateway.ipAddress, mono: true },
-                { icon: MapPin,  label: 'Location',     value: gateway.location,  mono: false },
+                { icon: Server,  label: 'IP Address', value: gateway.ip_address ?? '—', mono: true },
+                { icon: MapPin,  label: 'Location',   value: gateway.location,           mono: false },
               ].map(({ icon: Icon, label, value, mono }) => (
                 <div key={label} className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-background">
                   <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -264,30 +266,30 @@ function ViewGatewayDrawer({
           </section>
 
           {/* Last heartbeat */}
-          <section>
-            <h3 className="text-xs font-bold text-foreground-tertiary uppercase tracking-widest mb-4">
-              Status
-            </h3>
-            <div className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-background">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                gateway.status === 'online' ? 'bg-success/10' : 'bg-critical/10'
-              }`}>
-                {gateway.status === 'online'
-                  ? <CheckCircle className="w-4 h-4 text-success" />
-                  : <AlertCircle className="w-4 h-4 text-critical" />}
+          {gateway.last_heartbeat && (
+            <section>
+              <h3 className="text-xs font-bold text-foreground-tertiary uppercase tracking-widest mb-4">Status</h3>
+              <div className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-background">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  gateway.status === 'online' ? 'bg-success/10' : 'bg-critical/10'
+                }`}>
+                  {gateway.status === 'online'
+                    ? <CheckCircle className="w-4 h-4 text-success" />
+                    : <AlertCircle className="w-4 h-4 text-critical" />}
+                </div>
+                <div>
+                  <p className="text-xs text-foreground-tertiary font-medium">Last Heartbeat</p>
+                  <p className="text-sm font-semibold text-foreground mt-0.5">
+                    {new Date(gateway.last_heartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </p>
+                </div>
+                <div className="ml-auto text-right">
+                  <p className="text-xs text-foreground-tertiary font-medium">Gateway ID</p>
+                  <p className="text-sm font-semibold text-foreground font-mono">{gateway.id}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-foreground-tertiary font-medium">Last Heartbeat</p>
-                <p className="text-sm font-semibold text-foreground mt-0.5">
-                  {new Date(gateway.lastHeartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </p>
-              </div>
-              <div className="ml-auto text-right">
-                <p className="text-xs text-foreground-tertiary font-medium">Gateway ID</p>
-                <p className="text-sm font-semibold text-foreground font-mono">{gateway.id}</p>
-              </div>
-            </div>
-          </section>
+            </section>
+          )}
         </div>
 
         {/* Footer */}
@@ -309,19 +311,23 @@ function ViewGatewayDrawer({
 }
 
 /* ─── Edit Gateway Drawer ─────────────────────────────────── */
-function EditGatewayDrawer({ gateway, onClose }: { gateway: GatewayEx | null; onClose: () => void }) {
+function EditGatewayDrawer({ gateway, onClose }: { gateway: Gateway | null; onClose: () => void }) {
+  const { mutate: updateGateway, isPending } = useUpdateGateway();
+
   if (!gateway) return null;
 
   const [form, setForm] = useState({
-    location:  gateway.location,
-    ipAddress: gateway.ipAddress,
-    status:    gateway.status as 'online' | 'offline',
+    location:   gateway.location,
+    ip_address: gateway.ip_address ?? '',
+    status:     (gateway.status ?? 'online') as 'online' | 'offline',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    await gatewaysApi.update(gateway.id, { location: form.location, status: form.status });
-    onClose();
+    updateGateway(
+      { id: gateway.id, data: { location: form.location, status: form.status } },
+      { onSuccess: onClose },
+    );
   };
 
   return (
@@ -344,7 +350,6 @@ function EditGatewayDrawer({ gateway, onClose }: { gateway: GatewayEx | null; on
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <form id="edit-gateway-form" onSubmit={handleSubmit} className="space-y-5">
 
-            {/* Gateway ID — read-only */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Gateway ID</label>
               <input readOnly value={gateway.id}
@@ -362,9 +367,9 @@ function EditGatewayDrawer({ gateway, onClose }: { gateway: GatewayEx | null; on
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">IP Address <span className="text-critical">*</span></label>
-              <input required type="text" value={form.ipAddress}
-                onChange={e => setForm(f => ({ ...f, ipAddress: e.target.value }))}
+              <label className="text-sm font-medium text-foreground">IP Address</label>
+              <input type="text" value={form.ip_address}
+                onChange={e => setForm(f => ({ ...f, ip_address: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg font-mono
                   text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
             </div>
@@ -396,10 +401,10 @@ function EditGatewayDrawer({ gateway, onClose }: { gateway: GatewayEx | null; on
               border border-border rounded-lg hover:bg-background-tertiary transition-colors">
             Cancel
           </button>
-          <button type="submit" form="edit-gateway-form"
+          <button type="submit" form="edit-gateway-form" disabled={isPending}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-primary-foreground
-              bg-primary rounded-lg hover:bg-primary-dark transition-colors">
-            Save Changes
+              bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+            {isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -409,23 +414,17 @@ function EditGatewayDrawer({ gateway, onClose }: { gateway: GatewayEx | null; on
 
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function GatewaysPage() {
-  const [gwList, setGwList]       = useState<GatewayEx[]>([]);
-  const [addOpen, setAddOpen]     = useState(false);
-  const [viewGw, setViewGw]       = useState<GatewayEx | null>(null);
-  const [editGw, setEditGw]       = useState<GatewayEx | null>(null);
-  const [loading, setLoading]     = useState(true);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewGw,  setViewGw]  = useState<Gateway | null>(null);
+  const [editGw,  setEditGw]  = useState<Gateway | null>(null);
 
-  const load = () => gatewaysApi.list().then(data => { setGwList(data); setLoading(false); });
-  useEffect(() => { load(); }, []);
+  const { data: gwRaw, isLoading } = useGateways();
+  const { mutate: deleteGateway }   = useDeleteGateway();
 
+  const gwList      = (gwRaw as Gateway[] | undefined) ?? [];
   const onlineCount  = gwList.filter(g => g.status === 'online').length;
   const offlineCount = gwList.length - onlineCount;
   const availRate    = gwList.length ? Math.round((onlineCount / gwList.length) * 100) : 0;
-
-  const handleDelete = async (id: string) => {
-    await gatewaysApi.delete(id);
-    load();
-  };
 
   return (
     <>
@@ -468,7 +467,7 @@ export default function GatewaysPage() {
         {/* Table */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Gateways List</h3>
-          {loading ? (
+          {isLoading ? (
             <p className="text-foreground-secondary text-sm">Loading gateways...</p>
           ) : (
             <div className="overflow-x-auto">
@@ -485,7 +484,7 @@ export default function GatewaysPage() {
                     <tr key={gw.id} className="border-b border-border/50 hover:bg-background transition-colors">
                       <td className="py-3 px-4 text-foreground font-medium font-mono text-sm">{gw.id}</td>
                       <td className="py-3 px-4 text-foreground-secondary text-sm">{gw.location}</td>
-                      <td className="py-3 px-4 text-foreground text-sm">{gw.connected_helmets}</td>
+                      <td className="py-3 px-4 text-foreground text-sm">{gw.connected_helmets ?? 0}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           {gw.status === 'online'
@@ -497,21 +496,23 @@ export default function GatewaysPage() {
                         <div className="flex items-center gap-2">
                           <div className="flex items-end gap-0.5 h-4">
                             {[1,2,3,4].map(b => {
-                              const bars = Math.round((gw.signal_strength / 100) * 4);
+                              const bars = Math.round(((gw.signal_strength ?? 0) / 100) * 4);
                               return (
                                 <div key={b} className={`w-1.5 rounded-sm ${
                                   b <= bars
-                                    ? gw.signal_strength > 70 ? 'bg-success' : gw.signal_strength > 40 ? 'bg-warning' : 'bg-critical'
+                                    ? (gw.signal_strength ?? 0) > 70 ? 'bg-success' : (gw.signal_strength ?? 0) > 40 ? 'bg-warning' : 'bg-critical'
                                     : 'bg-background-tertiary'
                                 }`} style={{ height: `${b * 25}%` }} />
                               );
                             })}
                           </div>
-                          <span className="text-xs text-foreground-secondary">{gw.signal_strength}%</span>
+                          <span className="text-xs text-foreground-secondary">{gw.signal_strength ?? 0}%</span>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-foreground-secondary text-sm">
-                        {new Date(gw.last_heartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {gw.last_heartbeat
+                          ? new Date(gw.last_heartbeat).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : '—'}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
@@ -521,7 +522,7 @@ export default function GatewaysPage() {
                           <button onClick={() => setEditGw(gw)} className="p-2 hover:bg-background rounded transition-colors" title="Edit">
                             <Edit2 className="w-4 h-4 text-primary" />
                           </button>
-                          <button onClick={() => handleDelete(gw.id)} className="p-2 hover:bg-background rounded transition-colors" title="Delete">
+                          <button onClick={() => deleteGateway(gw.id)} className="p-2 hover:bg-background rounded transition-colors" title="Delete">
                             <Trash2 className="w-4 h-4 text-critical" />
                           </button>
                         </div>
@@ -535,13 +536,13 @@ export default function GatewaysPage() {
         </div>
       </div>
 
-      <AddGatewayDrawer open={addOpen} onClose={() => { setAddOpen(false); load(); }} />
+      <AddGatewayDrawer open={addOpen} onClose={() => setAddOpen(false)} />
       <ViewGatewayDrawer
         gateway={viewGw}
         onClose={() => setViewGw(null)}
         onEdit={g => { setViewGw(null); setEditGw(g); }}
       />
-      <EditGatewayDrawer gateway={editGw} onClose={() => { setEditGw(null); load(); }} />
+      <EditGatewayDrawer gateway={editGw} onClose={() => setEditGw(null)} />
     </>
   );
 }

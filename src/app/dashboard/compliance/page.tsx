@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { analytics, helmets as helmetsApi } from '@/lib/api';
-import type { Helmet } from '@/lib/api';
+import { useCompliance, useComplianceWeeklyTrend } from '@/hooks/use-analytics';
+import { useHelmets } from '@/hooks/use-helmets';
+import type { Helmet } from '@/lib/types';
 import { CheckCircle, AlertTriangle, TrendingUp, Target } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -14,34 +14,13 @@ interface ComplianceData {
 }
 
 export default function ComplianceReports() {
-  const [comp, setComp]           = useState<ComplianceData | null>(null);
-  const [trend, setTrend]         = useState<{ name: string; value: number }[]>([]);
-  const [helmetList, setHelmets]  = useState<Helmet[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const { data: compRaw, isLoading: compLoading }   = useCompliance();
+  const { data: trendRaw }                           = useComplianceWeeklyTrend();
+  const { data: helmetsRaw, isLoading: helmLoading } = useHelmets();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [c, tr, hlms] = await Promise.all([
-          analytics.compliance(),
-          analytics.complianceWeeklyTrend().catch(() => null),
-          helmetsApi.list(),
-        ]);
-
-        setComp(c as ComplianceData);
-        setHelmets(hlms as Helmet[]);
-
-        if (tr) {
-          const raw = tr as { trend?: { week: string; compliance_rate: number }[] } | { week: string; compliance_rate: number }[];
-          const arr = Array.isArray(raw) ? raw : (raw as { trend?: { week: string; compliance_rate: number }[] }).trend ?? [];
-          setTrend(arr.map((d: { week: string; compliance_rate: number }) => ({ name: d.week, value: Math.round(d.compliance_rate) })));
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const comp       = compRaw as ComplianceData | undefined;
+  const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
+  const loading    = compLoading || helmLoading;
 
   if (loading) {
     return (
@@ -50,6 +29,14 @@ export default function ComplianceReports() {
       </div>
     );
   }
+
+  const raw = trendRaw as { trend?: { week: string; compliance_rate: number }[] } | { week: string; compliance_rate: number }[] | undefined;
+  const arr = raw
+    ? Array.isArray(raw)
+      ? raw
+      : (raw as { trend?: { week: string; compliance_rate: number }[] }).trend ?? []
+    : [];
+  const trend = arr.map((d: { week: string; compliance_rate: number }) => ({ name: d.week, value: Math.round(d.compliance_rate) }));
 
   const complianceRate  = Math.round(comp?.compliance_rate_pct ?? 0);
   const wornCount       = comp?.helmet_worn_count ?? helmetList.filter(h => h.helmet_wear).length;

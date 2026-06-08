@@ -1,41 +1,42 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
   Mail, Phone, MapPin, Clock, Shield,
   Edit3, Building2, IdCard, Wifi, X, Camera, UserCheck,
   Eye, EyeOff, Lock, CheckCircle2,
 } from 'lucide-react';
-import { auth } from '@/lib/api';
-import type { User } from '@/lib/api';
+import { useMe, useChangePassword, useUpdateMe, useUploadAvatar } from '@/hooks/use-auth';
+import type { User } from '@/lib/types';
 
 /* ─── Change Password Drawer ──────────────────────────────── */
 function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [form, setForm]       = useState({ current: '', next: '', confirm: '' });
   const [show, setShow]       = useState({ current: false, next: false, confirm: false });
-  const [error, setError]     = useState('');
+  const [localError, setLocalError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [saving, setSaving]   = useState(false);
+
+  const { mutate: changePassword, isPending, error: apiError } = useChangePassword();
 
   if (!open) return null;
 
   const toggle = (field: keyof typeof show) => setShow(s => ({ ...s, [field]: !s[field] }));
+  const error = localError || (apiError instanceof Error ? apiError.message : apiError ? 'Failed to change password' : '');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    if (form.next.length < 8) { setError('New password must be at least 8 characters.'); return; }
-    if (form.next !== form.confirm) { setError('New passwords do not match.'); return; }
-    setSaving(true);
-    try {
-      await auth.changePassword(form.current, form.next);
-      setSuccess(true);
-      setTimeout(() => { setSuccess(false); setForm({ current: '', next: '', confirm: '' }); onClose(); }, 1500);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to change password');
-    } finally {
-      setSaving(false);
-    }
+    setLocalError('');
+    if (form.next.length < 8) { setLocalError('New password must be at least 8 characters.'); return; }
+    if (form.next !== form.confirm) { setLocalError('New passwords do not match.'); return; }
+    changePassword(
+      { currentPassword: form.current, newPassword: form.next },
+      {
+        onSuccess: () => {
+          setSuccess(true);
+          setTimeout(() => { setSuccess(false); setForm({ current: '', next: '', confirm: '' }); onClose(); }, 1500);
+        },
+      },
+    );
   };
 
   const Field = ({
@@ -172,10 +173,10 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
                 border border-border rounded-lg hover:bg-background-tertiary transition-colors">
               Cancel
             </button>
-            <button type="submit" form="change-admin-password-form" disabled={saving}
+            <button type="submit" form="change-admin-password-form" disabled={isPending}
               className="flex-1 px-4 py-2.5 text-sm font-medium text-primary-foreground
                 bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
-              {saving ? 'Updating...' : 'Update Password'}
+              {isPending ? 'Updating...' : 'Update Password'}
             </button>
           </div>
         )}
@@ -188,56 +189,38 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
 interface EditProfileDrawerProps {
   open: boolean;
   user: User;
-  avatarUrl: string | null;
-  onAvatarChange: (url: string) => void;
-  onSave: (u: User) => void;
   onClose: () => void;
 }
 
-function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onClose }: EditProfileDrawerProps) {
-  const [form, setForm]     = useState({ ...user });
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState('');
-  const fileRef             = useRef<HTMLInputElement>(null);
+function EditProfileDrawer({ open, user, onClose }: EditProfileDrawerProps) {
+  const [form, setForm] = useState({ ...user });
+  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(user.avatar_url ?? null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setForm({ ...user }); }, [user]);
+  const { mutate: updateMe, isPending, error } = useUpdateMe();
+  const { mutate: uploadAvatar } = useUploadAvatar();
 
   if (!open) return null;
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const res = await auth.uploadAvatar(file) as { avatar_url: string };
-      onAvatarChange(res.avatar_url);
-    } catch {
-      onAvatarChange(URL.createObjectURL(file));
-    }
+    uploadAvatar(file, {
+      onSuccess: (res) => setLocalAvatarUrl((res as { avatar_url: string }).avatar_url),
+      onError: () => setLocalAvatarUrl(URL.createObjectURL(file)),
+    });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSaving(true);
-    try {
-      const updated = await auth.updateMe({
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        location: form.location,
-        department: form.department,
-        bio: form.bio,
-      }) as User;
-      onSave(updated);
-      onClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save changes');
-    } finally {
-      setSaving(false);
-    }
+    updateMe(
+      { name: form.name, email: form.email, phone: form.phone, location: form.location, department: form.department, bio: form.bio },
+      { onSuccess: () => onClose() },
+    );
   };
 
   const initials = (form.name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const avatarUrl = localAvatarUrl ?? user.avatar_url ?? null;
 
   return (
     <>
@@ -310,7 +293,7 @@ function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onCl
 
             {error && (
               <div className="px-3 py-2.5 rounded-lg bg-critical/10 border border-critical/20">
-                <p className="text-xs font-medium text-critical">{error}</p>
+                <p className="text-xs font-medium text-critical">{error instanceof Error ? error.message : 'Failed to save changes'}</p>
               </div>
             )}
           </form>
@@ -322,10 +305,10 @@ function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onCl
               border border-border rounded-lg hover:bg-background-tertiary transition-colors">
             Cancel
           </button>
-          <button type="submit" form="edit-admin-profile-form" disabled={saving}
+          <button type="submit" form="edit-admin-profile-form" disabled={isPending}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-primary-foreground
               bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
-            {saving ? 'Saving...' : 'Save Changes'}
+            {isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -335,24 +318,12 @@ function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onCl
 
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function AdminProfilePage() {
-  const [user, setUser]         = useState<User | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [pwOpen, setPwOpen]     = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [loading, setLoading]   = useState(true);
 
-  useEffect(() => {
-    auth.me().then(u => {
-      const userData = u as User;
-      setUser(userData);
-      if (userData.avatar_url) setAvatarUrl(userData.avatar_url);
-    }).catch(() => {
-      const stored = localStorage.getItem('user');
-      if (stored) setUser(JSON.parse(stored) as User);
-    }).finally(() => setLoading(false));
-  }, []);
+  const { data: user, isLoading } = useMe();
 
-  if (loading || !user) {
+  if (isLoading || !user) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[60vh]">
         <p className="text-foreground-secondary">Loading profile...</p>
@@ -369,8 +340,8 @@ export default function AdminProfilePage() {
           <div className="flex items-center gap-5">
             <div className="w-20 h-20 rounded-2xl bg-critical flex items-center justify-center
               text-2xl font-bold text-white flex-shrink-0 overflow-hidden shadow-md">
-              {avatarUrl
-                ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              {user.avatar_url
+                ? <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                 : initials}
             </div>
             <div>
@@ -486,14 +457,7 @@ export default function AdminProfilePage() {
       </div>
 
       <ChangePasswordDrawer open={pwOpen} onClose={() => setPwOpen(false)} />
-      <EditProfileDrawer
-        open={editOpen}
-        user={user}
-        avatarUrl={avatarUrl}
-        onAvatarChange={setAvatarUrl}
-        onSave={setUser}
-        onClose={() => setEditOpen(false)}
-      />
+      <EditProfileDrawer open={editOpen} user={user} onClose={() => setEditOpen(false)} />
     </>
   );
 }

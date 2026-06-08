@@ -1,76 +1,59 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { analytics, workers as workersApi, supervisors as supervisorsApi } from '@/lib/api';
+import { useActiveSessions, useUsageTrends, useDepartmentDistribution, usePeakHours } from '@/hooks/use-analytics';
+import { useWorkers } from '@/hooks/use-workers';
+import { useSupervisors } from '@/hooks/use-supervisors';
+import type { Worker, Supervisor } from '@/lib/types';
 
-interface ActiveSessions { count: number; }
-interface UsageTrend     { date: string; count: number; }
-interface DeptDist       { department: string; count: number; }
-interface PeakHour       { hour: string; usage_pct: number; }
+interface UsageTrend { date: string; count: number; }
+interface DeptDist   { department: string; count: number; }
+interface PeakHour   { hour: string; usage_pct: number; }
 
 const COLORS = ['#0ea5e9', '#10b981', '#f97316', '#a855f7'];
 
 export default function AnalyticsPage() {
-  const [sessions, setSessions]         = useState(0);
-  const [usageTrends, setUsageTrends]   = useState<{ name: string; workers: number; supervisors: number }[]>([]);
-  const [deptDist, setDeptDist]         = useState<{ name: string; value: number }[]>([]);
-  const [peakHours, setPeakHours]       = useState<{ hour: string; usage: number }[]>([]);
-  const [loading, setLoading]           = useState(true);
+  const { data: sessionsRaw }  = useActiveSessions();
+  const { data: trendsRaw }    = useUsageTrends();
+  const { data: deptRaw }      = useDepartmentDistribution();
+  const { data: peakRaw }      = usePeakHours();
+  const { data: workersRaw }   = useWorkers();
+  const { data: supsRaw }      = useSupervisors();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [sess, trends, dept, peak, wkrs, sups] = await Promise.all([
-          analytics.activeSessions().catch(() => null),
-          analytics.usageTrends().catch(() => null),
-          analytics.departmentDistribution().catch(() => null),
-          analytics.peakHours().catch(() => null),
-          workersApi.list(),
-          supervisorsApi.list(),
-        ]);
+  const sessions   = (sessionsRaw as { count?: number } | undefined)?.count ?? 0;
+  const workerList = (workersRaw as Worker[] | undefined) ?? [];
+  const supList    = (supsRaw as Supervisor[] | undefined) ?? [];
 
-        if (sess) setSessions((sess as ActiveSessions).count ?? 0);
+  // Usage trends
+  let usageTrends: { name: string; workers: number; supervisors: number }[];
+  if (trendsRaw && Array.isArray(trendsRaw) && trendsRaw.length > 0) {
+    usageTrends = (trendsRaw as UsageTrend[]).map(d => ({
+      name: new Date(d.date).toLocaleDateString([], { weekday: 'short' }),
+      workers: d.count,
+      supervisors: 0,
+    }));
+  } else {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    usageTrends = days.map(name => ({ name, workers: workerList.length, supervisors: supList.length }));
+  }
 
-        if (trends) {
-          const arr = Array.isArray(trends) ? trends as UsageTrend[] : [];
-          setUsageTrends(arr.map(d => ({
-            name: new Date(d.date).toLocaleDateString([], { weekday: 'short' }),
-            workers: d.count,
-            supervisors: 0,
-          })));
-        } else {
-          // fallback: show worker/supervisor counts as static bars
-          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-          const totalW = (wkrs as { length: number }).length;
-          const totalS = (sups as { length: number }).length;
-          setUsageTrends(days.map(name => ({ name, workers: totalW, supervisors: totalS })));
-        }
+  // Department distribution
+  let deptDist: { name: string; value: number }[];
+  if (deptRaw && Array.isArray(deptRaw) && deptRaw.length > 0) {
+    deptDist = (deptRaw as DeptDist[]).map(d => ({ name: d.department, value: d.count }));
+  } else {
+    const map: Record<string, number> = {};
+    workerList.forEach(w => { if (w.department) map[w.department] = (map[w.department] ?? 0) + 1; });
+    deptDist = Object.entries(map).map(([name, value]) => ({ name, value }));
+  }
 
-        if (dept) {
-          const arr = Array.isArray(dept) ? dept as DeptDist[] : [];
-          setDeptDist(arr.map(d => ({ name: d.department, value: d.count })));
-        } else {
-          // fallback: build from workers list
-          const wList = wkrs as { department: string }[];
-          const map: Record<string, number> = {};
-          wList.forEach(w => { map[w.department] = (map[w.department] ?? 0) + 1; });
-          setDeptDist(Object.entries(map).map(([name, value]) => ({ name, value })));
-        }
-
-        if (peak) {
-          const arr = Array.isArray(peak) ? peak as PeakHour[] : [];
-          setPeakHours(arr.map(d => ({ hour: d.hour, usage: Math.round(d.usage_pct) })));
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  // Peak hours
+  const peakHours = peakRaw && Array.isArray(peakRaw)
+    ? (peakRaw as PeakHour[]).map(d => ({ hour: d.hour, usage: Math.round(d.usage_pct) }))
+    : [];
 
   return (
     <div className="p-6 space-y-6">
@@ -82,19 +65,19 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <p className="text-foreground-secondary text-sm font-medium">Active Sessions</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{loading ? '—' : sessions}</p>
+          <p className="text-3xl font-bold text-foreground mt-2">{sessions}</p>
           <p className="text-xs text-success mt-2">Supervisors online</p>
         </div>
 
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <p className="text-foreground-secondary text-sm font-medium">Departments</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{loading ? '—' : deptDist.length}</p>
+          <p className="text-3xl font-bold text-foreground mt-2">{deptDist.length}</p>
           <p className="text-xs text-success mt-2">Tracked</p>
         </div>
 
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <p className="text-foreground-secondary text-sm font-medium">Peak Hours Tracked</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{loading ? '—' : peakHours.length > 0 ? peakHours.length : '—'}</p>
+          <p className="text-3xl font-bold text-foreground mt-2">{peakHours.length > 0 ? peakHours.length : '—'}</p>
           <p className="text-xs text-success mt-2">Time slots</p>
         </div>
 
@@ -108,27 +91,21 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">System Usage (Weekly)</h3>
-          {loading ? (
-            <div className="h-[300px] flex items-center justify-center text-foreground-tertiary text-sm">Loading...</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={usageTrends}>
-                <XAxis dataKey="name" stroke="var(--axis-stroke)" />
-                <YAxis stroke="var(--axis-stroke)" />
-                <Tooltip contentStyle={{ backgroundColor: 'var(--background-secondary)', border: '1px solid var(--border)', borderRadius: '8px' }} labelStyle={{ color: 'var(--foreground)' }} />
-                <Legend />
-                <Line type="monotone" dataKey="workers"     stroke="#0ea5e9" strokeWidth={2} name="Workers" />
-                <Line type="monotone" dataKey="supervisors" stroke="#10b981" strokeWidth={2} name="Supervisors" />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={usageTrends}>
+              <XAxis dataKey="name" stroke="var(--axis-stroke)" />
+              <YAxis stroke="var(--axis-stroke)" />
+              <Tooltip contentStyle={{ backgroundColor: 'var(--background-secondary)', border: '1px solid var(--border)', borderRadius: '8px' }} labelStyle={{ color: 'var(--foreground)' }} />
+              <Legend />
+              <Line type="monotone" dataKey="workers"     stroke="#0ea5e9" strokeWidth={2} name="Workers" />
+              <Line type="monotone" dataKey="supervisors" stroke="#10b981" strokeWidth={2} name="Supervisors" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Workers by Department</h3>
-          {loading ? (
-            <div className="h-[300px] flex items-center justify-center text-foreground-tertiary text-sm">Loading...</div>
-          ) : deptDist.length === 0 ? (
+          {deptDist.length === 0 ? (
             <div className="h-[300px] flex items-center justify-center text-foreground-tertiary text-sm">No department data</div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -165,14 +142,14 @@ export default function AnalyticsPage() {
             ))}
           </div>
         </div>
-      ) : !loading ? (
+      ) : (
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Peak Usage Hours</h3>
           <p className="text-sm text-foreground-tertiary text-center py-4">
             Peak hours data will be available once the <code className="bg-background px-1 rounded">GET /analytics/peak-hours</code> endpoint is implemented
           </p>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

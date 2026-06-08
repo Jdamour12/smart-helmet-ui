@@ -1,71 +1,46 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { AlertTriangle, Users, Zap, TrendingUp } from 'lucide-react';
-import { analytics, alerts as alertsApi } from '@/lib/api';
-import type { Alert } from '@/lib/api';
+import { useAnalyticsSummary, useGasLevels, useCompliance, useAlertsByLevel, useAlertTrends, useNetworkHealth } from '@/hooks/use-analytics';
+import { useAlertFeed } from '@/hooks/use-alerts';
+import type { Alert } from '@/lib/types';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
-  const [totalHelmets, setTotalHelmets]       = useState(0);
-  const [criticalAlerts, setCriticalAlerts]   = useState(0);
-  const [avgGasLevel, setAvgGasLevel]         = useState(0);
-  const [complianceRate, setComplianceRate]   = useState(0);
-  const [alertTrends, setAlertTrends]         = useState<{ name: string; value: number }[]>([]);
-  const [gasDistribution, setGasDistribution] = useState<{ name: string; value: number }[]>([]);
-  const [recentAlerts, setRecentAlerts]       = useState<Alert[]>([]);
-  const [gwHealth, setGwHealth]               = useState<{ total_gateways: number; online: number; avg_packet_delivery_rate: number } | null>(null);
-  const [loading, setLoading]                 = useState(true);
+  const { data: summary } = useAnalyticsSummary();
+  const { data: gas }     = useGasLevels();
+  const { data: comp }    = useCompliance();
+  const { data: byLevel } = useAlertsByLevel();
+  const { data: trends }  = useAlertTrends(1);
+  const { data: feed }    = useAlertFeed();
+  const { data: network } = useNetworkHealth();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [sum, gas, comp, byLevel, trends, feed, network] = await Promise.all([
-          analytics.summary().catch(() => ({})),
-          analytics.gasLevels().catch(() => ({})),
-          analytics.compliance().catch(() => ({})),
-          analytics.alertsByLevel().catch(() => []),
-          analytics.alertTrends(1).catch(() => []),
-          alertsApi.feed().catch(() => []),
-          analytics.networkHealth().catch(() => ({})),
-        ]);
+  const s  = summary as { total_helmets?: number; total_workers?: number; unresolved_alerts?: number } | undefined;
+  const g  = gas as { avg_co_ppm?: number; co_distribution?: { safe: number; warning: number; critical: number }; ch4_distribution?: { safe: number; warning: number; critical: number } } | undefined;
+  const c  = comp as { compliance_rate_pct?: number } | undefined;
+  const lv = byLevel as { level: string; count: number }[] | undefined;
+  const tr = trends  as { date: string; count: number }[] | undefined;
+  const nw = network as { total_gateways?: number; online?: number; avg_packet_delivery_rate?: number } | undefined;
 
-        const s   = sum   as { total_helmets: number; total_workers: number; unresolved_alerts: number };
-        const g   = gas   as { avg_co_ppm: number; co_distribution: { safe: number; warning: number; critical: number }; ch4_distribution: { safe: number; warning: number; critical: number } };
-        const c   = comp  as { compliance_rate_pct: number };
-        const lv  = byLevel as { level: string; count: number }[];
-        const tr  = trends  as { date: string; count: number }[];
-        const nw  = network as { total_gateways: number; online: number; avg_packet_delivery_rate: number };
+  const totalHelmets    = s?.total_helmets ?? 0;
+  const criticalAlerts  = lv?.find(l => l.level === 'critical')?.count ?? 0;
+  const avgGasLevel     = g?.avg_co_ppm ?? 0;
+  const complianceRate  = Math.round(c?.compliance_rate_pct ?? 0);
+  const recentAlerts    = (feed as Alert[] | undefined) ?? [];
 
-        setTotalHelmets(s.total_helmets);
-        setCriticalAlerts(lv.find(l => l.level === 'critical')?.count ?? 0);
-        setAvgGasLevel(g.avg_co_ppm ?? 0);
-        setComplianceRate(Math.round(c.compliance_rate_pct ?? 0));
-        setAlertTrends(tr.map(d => ({ name: new Date(d.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), value: d.count })));
-        setGasDistribution([
-          { name: 'CO Safe',     value: g.co_distribution?.safe ?? 0 },
-          { name: 'CO Warning',  value: g.co_distribution?.warning ?? 0 },
-          { name: 'CO Critical', value: g.co_distribution?.critical ?? 0 },
-          { name: 'CH4 Safe',    value: g.ch4_distribution?.safe ?? 0 },
-          { name: 'CH4 Warning', value: g.ch4_distribution?.warning ?? 0 },
-          { name: 'CH4 Critical',value: g.ch4_distribution?.critical ?? 0 },
-        ]);
-        setRecentAlerts(feed as Alert[]);
-        setGwHealth(nw);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const alertTrends = (tr ?? []).map(d => ({
+    name: new Date(d.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    value: d.count,
+  }));
 
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-[60vh]">
-        <p className="text-foreground-secondary">Loading dashboard...</p>
-      </div>
-    );
-  }
+  const gasDistribution = [
+    { name: 'CO Safe',      value: g?.co_distribution?.safe ?? 0 },
+    { name: 'CO Warning',   value: g?.co_distribution?.warning ?? 0 },
+    { name: 'CO Critical',  value: g?.co_distribution?.critical ?? 0 },
+    { name: 'CH4 Safe',     value: g?.ch4_distribution?.safe ?? 0 },
+    { name: 'CH4 Warning',  value: g?.ch4_distribution?.warning ?? 0 },
+    { name: 'CH4 Critical', value: g?.ch4_distribution?.critical ?? 0 },
+  ];
 
   return (
     <div className="p-6 space-y-6">
@@ -179,20 +154,20 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-foreground-secondary text-sm">Connected Gateways</p>
-                <p className="text-lg font-bold text-foreground">{gwHealth?.online ?? 0}/{gwHealth?.total_gateways ?? 0}</p>
+                <p className="text-lg font-bold text-foreground">{nw?.online ?? 0}/{nw?.total_gateways ?? 0}</p>
               </div>
               <div className="h-2 bg-background rounded-full overflow-hidden">
-                <div className="h-full bg-success" style={{ width: gwHealth?.total_gateways ? `${(gwHealth.online / gwHealth.total_gateways) * 100}%` : '0%' }} />
+                <div className="h-full bg-success" style={{ width: nw?.total_gateways ? `${((nw.online ?? 0) / nw.total_gateways) * 100}%` : '0%' }} />
               </div>
               <p className="text-xs text-success mt-1">Operational</p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-foreground-secondary text-sm">Packet Delivery</p>
-                <p className="text-lg font-bold text-foreground">{((gwHealth?.avg_packet_delivery_rate ?? 0) * 100).toFixed(1)}%</p>
+                <p className="text-lg font-bold text-foreground">{((nw?.avg_packet_delivery_rate ?? 0) * 100).toFixed(1)}%</p>
               </div>
               <div className="h-2 bg-background rounded-full overflow-hidden">
-                <div className="h-full bg-success" style={{ width: `${(gwHealth?.avg_packet_delivery_rate ?? 0) * 100}%` }} />
+                <div className="h-full bg-success" style={{ width: `${(nw?.avg_packet_delivery_rate ?? 0) * 100}%` }} />
               </div>
               <p className="text-xs text-success mt-1">Optimal</p>
             </div>
