@@ -56,6 +56,7 @@ export interface Worker {
   name: string;
   email: string;
   department: string;
+  department_id?: string;
   phone?: string;
   status: 'active' | 'inactive';
   supervisor_id?: string;
@@ -74,6 +75,18 @@ export interface Supervisor {
   gateway_count?: number;
   created_at?: string;
   last_active?: string;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  description?: string;
+  location?: string;
+  is_active: boolean;
+  status?: 'active' | 'inactive';
+  worker_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Gateway {

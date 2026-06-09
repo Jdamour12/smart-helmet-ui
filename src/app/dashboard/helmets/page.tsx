@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useHelmets, useCreateHelmet, useUpdateHelmet, useDeleteHelmet } from '@/hooks/use-helmets';
 import { useCreateWorker } from '@/hooks/use-workers';
 import { useGateways } from '@/hooks/use-gateways';
+import { useDepartments } from '@/hooks/use-departments';
 import { useHelmetLive } from '@/hooks/use-websocket-helmets';
-import type { Helmet, Gateway } from '@/lib/types';
+import type { Helmet, Gateway, Department } from '@/lib/types';
 import {
   Radio, Users, AlertTriangle, Zap, Plus, Eye, Edit2, Trash2,
   X, Wifi, Battery, Thermometer, Wind, Droplets,
@@ -18,19 +19,27 @@ function Overlay({ onClick }: { onClick: () => void }) {
 
 /* ─── Add Worker drawer ──────────────────────────────────── */
 function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: () => void; gateways: Gateway[] }) {
-  const [form, setForm] = useState({ name: '', department: '', phone: '', gateway_id: '' });
+  const [form, setForm] = useState({ name: '', department_id: '', phone: '', gateway_id: '' });
   const { mutate: createWorker } = useCreateWorker();
   const { mutate: createHelmet } = useCreateHelmet();
+  const { data: deptsRaw } = useDepartments();
+  const deptList = (deptsRaw as Department[] | undefined) ?? [];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const selectedDept = deptList.find(d => d.id === form.department_id);
     createWorker(
-      { name: form.name, department: form.department, phone: form.phone } as any,
+      {
+        name: form.name,
+        department: selectedDept?.name,
+        department_id: form.department_id || undefined,
+        phone: form.phone,
+      } as any,
       {
         onSuccess: (newWorker: any) => {
           createHelmet(
             { worker_id: newWorker.id, gateway_id: form.gateway_id || undefined } as any,
-            { onSuccess: () => onClose() },
+            { onSuccess: () => { setForm({ name: '', department_id: '', phone: '', gateway_id: '' }); onClose(); } },
           );
         },
       },
@@ -61,10 +70,12 @@ function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: 
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Department <span className="text-critical">*</span></label>
-              <input required type="text" placeholder="e.g. Mining Operations" value={form.department}
-                onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+              <label className="text-sm font-medium text-foreground">Department</label>
+              <select value={form.department_id} onChange={e => setForm(f => ({ ...f, department_id: e.target.value }))}
+                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
+                <option value="">No department</option>
+                {deptList.map(d => <option key={d.id} value={d.id}>{d.name}{d.location ? ` — ${d.location}` : ''}</option>)}
+              </select>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Phone Number</label>
