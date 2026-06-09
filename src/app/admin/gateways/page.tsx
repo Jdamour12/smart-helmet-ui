@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus, Eye, Edit2, Trash2, Wifi, WifiOff,
   X, MapPin, Radio,
@@ -31,7 +31,7 @@ function AddGatewayDrawer({ open, onClose }: { open: boolean; onClose: () => voi
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createGateway(
-      { id: form.gatewayId || undefined, location: form.location, status: form.status },
+      { name: form.gatewayId || undefined, location: form.location, ip_address: form.ipAddress || undefined, status: form.status } as any,
       { onSuccess: onClose },
     );
   };
@@ -179,7 +179,7 @@ function ViewGatewayDrawer({
                   : <WifiOff className="w-7 h-7 text-critical" />}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-foreground">{gateway.id}</h2>
+                <h2 className="text-xl font-bold text-foreground">{gateway.name || gateway.location}</h2>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <span className="text-xs text-foreground-tertiary bg-background px-2 py-0.5 rounded-md border border-border">
                     {gateway.location}
@@ -284,8 +284,8 @@ function ViewGatewayDrawer({
                   </p>
                 </div>
                 <div className="ml-auto text-right">
-                  <p className="text-xs text-foreground-tertiary font-medium">Gateway ID</p>
-                  <p className="text-sm font-semibold text-foreground font-mono">{gateway.id}</p>
+                  <p className="text-xs text-foreground-tertiary font-medium">Gateway Name</p>
+                  <p className="text-sm font-semibold text-foreground">{gateway.name || gateway.location}</p>
                 </div>
               </div>
             </section>
@@ -313,19 +313,28 @@ function ViewGatewayDrawer({
 /* ─── Edit Gateway Drawer ─────────────────────────────────── */
 function EditGatewayDrawer({ gateway, onClose }: { gateway: Gateway | null; onClose: () => void }) {
   const { mutate: updateGateway, isPending } = useUpdateGateway();
+  const [form, setForm] = useState({
+    location:   '',
+    ip_address: '',
+    status:     'online' as 'online' | 'offline',
+  });
+
+  useEffect(() => {
+    if (gateway) {
+      setForm({
+        location:   gateway.location,
+        ip_address: gateway.ip_address ?? '',
+        status:     (gateway.status ?? 'online') as 'online' | 'offline',
+      });
+    }
+  }, [gateway?.id]);
 
   if (!gateway) return null;
-
-  const [form, setForm] = useState({
-    location:   gateway.location,
-    ip_address: gateway.ip_address ?? '',
-    status:     (gateway.status ?? 'online') as 'online' | 'offline',
-  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateGateway(
-      { id: gateway.id, data: { location: form.location, status: form.status } },
+      { id: gateway.id, data: { location: form.location, ip_address: form.ip_address || undefined, status: form.status } },
       { onSuccess: onClose },
     );
   };
@@ -340,7 +349,7 @@ function EditGatewayDrawer({ gateway, onClose }: { gateway: Gateway | null; onCl
         <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
           <div>
             <h2 className="text-base font-semibold text-foreground">Edit Gateway</h2>
-            <p className="text-xs text-foreground-tertiary mt-0.5">{gateway.id} · {gateway.location}</p>
+            <p className="text-xs text-foreground-tertiary mt-0.5">{gateway.name || gateway.location} · {gateway.location}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-background-tertiary rounded-lg transition-colors">
             <X className="w-4 h-4 text-foreground-secondary" />
@@ -351,11 +360,11 @@ function EditGatewayDrawer({ gateway, onClose }: { gateway: Gateway | null; onCl
           <form id="edit-gateway-form" onSubmit={handleSubmit} className="space-y-5">
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Gateway ID</label>
-              <input readOnly value={gateway.id}
+              <label className="text-sm font-medium text-foreground">Gateway Name</label>
+              <input readOnly value={gateway.name || gateway.location}
                 className="w-full px-3 py-2.5 text-sm bg-background-tertiary border border-border rounded-lg
-                  text-foreground-secondary cursor-not-allowed font-mono" />
-              <p className="text-xs text-foreground-tertiary">Gateway ID cannot be changed</p>
+                  text-foreground-secondary cursor-not-allowed" />
+              <p className="text-xs text-foreground-tertiary">Gateway name cannot be changed here</p>
             </div>
 
             <div className="space-y-1.5">
@@ -444,20 +453,20 @@ export default function GatewaysPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Gateways',    value: gwList.length,   color: 'primary',  sub: 'All devices' },
-            { label: 'Online Gateways',   value: onlineCount,     color: 'success',  sub: 'Fully operational' },
-            { label: 'Offline Gateways',  value: offlineCount,    color: 'critical', sub: 'Need attention' },
-            { label: 'Availability Rate', value: `${availRate}%`, color: 'info',     sub: 'Network uptime' },
-          ].map(({ label, value, color, sub }) => (
+            { label: 'Total Gateways',    value: gwList.length,   color: 'primary',  sub: 'All devices',         Icon: Server },
+            { label: 'Online Gateways',   value: onlineCount,     color: 'success',  sub: 'Fully operational',   Icon: Wifi },
+            { label: 'Offline Gateways',  value: offlineCount,    color: 'critical', sub: 'Need attention',      Icon: WifiOff },
+            { label: 'Availability Rate', value: `${availRate}%`, color: 'info',     sub: 'Network uptime',      Icon: Signal },
+          ].map(({ label, value, color, sub, Icon }) => (
             <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-foreground-secondary text-sm font-medium">{label}</p>
                   <p className={`text-3xl font-bold text-${color} mt-2`}>{value}</p>
-                  <p className={`text-xs mt-2 text-${color === 'primary' ? 'foreground-tertiary' : color}`}>{sub}</p>
+                  <p className="text-xs text-foreground-tertiary mt-2">{sub}</p>
                 </div>
-                <div className={`w-12 h-12 bg-${color}/10 rounded-lg flex items-center justify-center`}>
-                  <span className={`text-base font-bold text-${color}`}>{value}</span>
+                <div className={`bg-${color}/10 p-3 rounded-lg`}>
+                  <Icon className={`w-6 h-6 text-${color}`} />
                 </div>
               </div>
             </div>
@@ -474,7 +483,7 @@ export default function GatewaysPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    {['ID', 'Location', 'Helmets', 'Status', 'Signal', 'Last Heartbeat', 'Actions'].map(h => (
+                    {['Name', 'Location', 'Helmets', 'Status', 'Signal', 'Last Heartbeat', 'Actions'].map(h => (
                       <th key={h} className="text-left py-3 px-4 text-foreground-secondary text-sm font-semibold">{h}</th>
                     ))}
                   </tr>
@@ -482,7 +491,7 @@ export default function GatewaysPage() {
                 <tbody>
                   {gwList.map(gw => (
                     <tr key={gw.id} className="border-b border-border/50 hover:bg-background transition-colors">
-                      <td className="py-3 px-4 text-foreground font-medium font-mono text-sm">{gw.id}</td>
+                      <td className="py-3 px-4 text-foreground font-medium text-sm">{gw.name || gw.location}</td>
                       <td className="py-3 px-4 text-foreground-secondary text-sm">{gw.location}</td>
                       <td className="py-3 px-4 text-foreground text-sm">{gw.connected_helmets ?? 0}</td>
                       <td className="py-3 px-4">

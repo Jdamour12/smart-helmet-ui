@@ -12,31 +12,52 @@ export function logout() {
   return http('/auth/logout', { method: 'POST' });
 }
 
-export function getMe() {
-  return http<User>('/auth/me');
+export async function getMe(): Promise<User> {
+  const raw = await http<any>('/auth/me');
+  return { ...raw, name: raw.full_name ?? raw.name ?? '' };
 }
 
-export function updateMe(data: Partial<User>) {
-  return http<User>('/auth/me', { method: 'PATCH', body: JSON.stringify(data) });
+export async function updateMe(data: Partial<User>): Promise<User> {
+  const raw = await http<any>('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      location: data.location,
+      department: data.department,
+      bio: data.bio,
+    }),
+  });
+  return { ...raw, name: raw.full_name ?? raw.name ?? '' };
 }
 
 export function changePassword(currentPassword: string, newPassword: string) {
   return http('/auth/change-password', {
     method: 'POST',
-    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
   });
 }
 
 export function forgotPassword(email: string) {
-  return http('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
+  return http('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
 }
 
 export function resetPassword(token: string, password: string) {
-  return http('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) });
+  return http('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  });
 }
 
 export function uploadAvatar(file: File) {
   const form = new FormData();
-  form.append('avatar', file);
+  form.append('file', file);
   return httpUpload<{ avatar_url: string }>('/auth/me/avatar', form);
 }

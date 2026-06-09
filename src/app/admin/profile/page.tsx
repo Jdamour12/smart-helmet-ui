@@ -402,7 +402,6 @@ export default function AdminProfilePage() {
             <h2 className="text-base font-semibold text-foreground">Account Information</h2>
             <div className="space-y-4">
               {[
-                { icon: Shield,     label: 'Admin ID',     value: user.id },
                 { icon: UserCheck,  label: 'Role',         value: 'System Administrator' },
                 { icon: Clock,      label: 'Last Login',   value: 'Today at ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
                 { icon: Wifi,       label: 'Access Level', value: 'Full System Access' },

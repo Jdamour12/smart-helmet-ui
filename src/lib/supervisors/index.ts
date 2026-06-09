@@ -10,11 +10,25 @@ export function get(id: string) {
 }
 
 export function create(data: Partial<Supervisor>) {
-  return http<Supervisor>('/supervisors', { method: 'POST', body: JSON.stringify(data) });
+  return http<Supervisor>('/supervisors', {
+    method: 'POST',
+    body: JSON.stringify({
+      full_name: data.name,
+      email: data.email,
+      phone: data.phone,
+    }),
+  });
 }
 
 export function update(id: string, data: Partial<Supervisor>) {
-  return http<Supervisor>(`/supervisors/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  return http<Supervisor>(`/supervisors/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      full_name: data.name,
+      phone: data.phone,
+      is_active: data.status !== undefined ? data.status === 'active' : undefined,
+    }),
+  });
 }
 
 export function remove(id: string) {

@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus, Eye, Edit2, Trash2, X,
   Mail, MapPin, Users, Wifi,
-  Calendar, Clock, ChevronRight, Shield,
+  Calendar, Clock, ChevronRight, Shield, UserCheck,
 } from 'lucide-react';
 import {
   useSupervisors, useCreateSupervisor, useUpdateSupervisor, useDeleteSupervisor,
 } from '@/hooks/use-supervisors';
-import type { Supervisor } from '@/lib/types';
+import { useGateways } from '@/hooks/use-gateways';
+import type { Supervisor, Gateway } from '@/lib/types';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -23,8 +24,10 @@ function Overlay({ onClick }: { onClick: () => void }) {
 
 /* ─── Add Supervisor Drawer ───────────────────────────────── */
 function AddSupervisorDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [form, setForm] = useState({ name: '', email: '', location: '', phone: '', gateways: '1' });
+  const [form, setForm] = useState({ name: '', email: '', location: '', phone: '', gateway_id: '' });
   const { mutate: createSupervisor, isPending } = useCreateSupervisor();
+  const { data: gatewaysRaw } = useGateways();
+  const gatewayList = (gatewaysRaw as Gateway[] | undefined) ?? [];
 
   if (!open) return null;
 
@@ -93,14 +96,15 @@ function AddSupervisorDrawer({ open, onClose }: { open: boolean; onClose: () => 
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Gateways to Assign <span className="text-critical">*</span></label>
-              <select required value={form.gateways}
-                onChange={e => setForm(f => ({ ...f, gateways: e.target.value }))}
+              <label className="text-sm font-medium text-foreground">Assign Gateway</label>
+              <select value={form.gateway_id}
+                onChange={e => setForm(f => ({ ...f, gateway_id: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
                   text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                <option value="1">1 Gateway</option>
-                <option value="2">2 Gateways</option>
-                <option value="3">3 Gateways</option>
+                <option value="">No gateway assigned</option>
+                {gatewayList.map(gw => (
+                  <option key={gw.id} value={gw.id}>{gw.name || gw.location}</option>
+                ))}
               </select>
             </div>
 
@@ -168,9 +172,6 @@ function ViewSupervisorDrawer({
               <div>
                 <h2 className="text-xl font-bold text-foreground">{supervisor.name}</h2>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <span className="text-xs text-foreground-tertiary bg-background px-2 py-0.5 rounded-md border border-border font-mono">
-                    {supervisor.id}
-                  </span>
                   <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
                     supervisor.status === 'active' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
                   }`}>
@@ -286,16 +287,29 @@ function ViewSupervisorDrawer({
 /* ─── Edit Supervisor Drawer ──────────────────────────────── */
 function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor | null; onClose: () => void }) {
   const { mutate: updateSupervisor, isPending } = useUpdateSupervisor();
+  const { data: gatewaysRaw } = useGateways();
+  const gatewayList = (gatewaysRaw as Gateway[] | undefined) ?? [];
+  const [form, setForm] = useState({
+    name:     '',
+    email:    '',
+    location: '',
+    gateways: '',
+    status:   'active' as 'active' | 'inactive',
+  });
+
+  useEffect(() => {
+    if (supervisor) {
+      setForm({
+        name:     supervisor.name ?? '',
+        email:    supervisor.email ?? '',
+        location: supervisor.location ?? supervisor.department ?? '',
+        gateways: String(supervisor.gateway_count ?? 1),
+        status:   (supervisor.status ?? 'active') as 'active' | 'inactive',
+      });
+    }
+  }, [supervisor?.id]);
 
   if (!supervisor) return null;
-
-  const [form, setForm] = useState({
-    name:     supervisor.name,
-    email:    supervisor.email,
-    location: supervisor.location ?? supervisor.department ?? '',
-    gateways: String(supervisor.gateway_count ?? 1),
-    status:   (supervisor.status ?? 'active') as 'active' | 'inactive',
-  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,7 +329,7 @@ function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor 
         <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
           <div>
             <h2 className="text-base font-semibold text-foreground">Edit Supervisor</h2>
-            <p className="text-xs text-foreground-tertiary mt-0.5">{supervisor.name} · {supervisor.id}</p>
+            <p className="text-xs text-foreground-tertiary mt-0.5">{supervisor.email}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-background-tertiary rounded-lg transition-colors">
             <X className="w-4 h-4 text-foreground-secondary" />
@@ -350,22 +364,15 @@ function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor 
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Supervisor ID</label>
-              <input readOnly value={supervisor.id}
-                className="w-full px-3 py-2.5 text-sm bg-background-tertiary border border-border rounded-lg
-                  text-foreground-secondary cursor-not-allowed font-mono" />
-              <p className="text-xs text-foreground-tertiary">Supervisor ID cannot be changed</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Assigned Gateways</label>
+              <label className="text-sm font-medium text-foreground">Assigned Gateway</label>
               <select value={form.gateways}
                 onChange={e => setForm(f => ({ ...f, gateways: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
                   text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                <option value="1">1 Gateway</option>
-                <option value="2">2 Gateways</option>
-                <option value="3">3 Gateways</option>
+                <option value="">No gateway assigned</option>
+                {gatewayList.map(gw => (
+                  <option key={gw.id} value={gw.id}>{gw.name || gw.location}</option>
+                ))}
               </select>
             </div>
 
@@ -435,19 +442,20 @@ export default function SupervisorsPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Supervisors',  value: supList.length, color: 'primary' },
-            { label: 'Active Supervisors', value: activeCount,    color: 'success' },
-            { label: 'Avg Workers',  value: supList.length ? Math.round(supList.reduce((a, s) => a + (s.worker_count ?? 0), 0) / supList.length) : 0, color: 'info' },
-            { label: 'Avg Gateways', value: supList.length ? Math.round(supList.reduce((a, s) => a + (s.gateway_count ?? 0), 0) / supList.length) : 0, color: 'warning' },
-          ].map(({ label, value, color }) => (
+            { label: 'Total Supervisors',  value: supList.length, sub: 'Registered accounts',      color: 'primary',  Icon: Shield },
+            { label: 'Active Supervisors', value: activeCount,    sub: 'Currently active',         color: 'success',  Icon: UserCheck },
+            { label: 'Avg Workers',        value: supList.length ? Math.round(supList.reduce((a, s) => a + (s.worker_count ?? 0), 0) / supList.length) : 0, sub: 'Per supervisor', color: 'info', Icon: Users },
+            { label: 'Avg Gateways',       value: supList.length ? Math.round(supList.reduce((a, s) => a + (s.gateway_count ?? 0), 0) / supList.length) : 0, sub: 'Per supervisor', color: 'warning', Icon: Wifi },
+          ].map(({ label, value, sub, color, Icon }) => (
             <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-foreground-secondary text-sm font-medium">{label}</p>
                   <p className={`text-3xl font-bold text-${color} mt-2`}>{value}</p>
+                  <p className="text-xs text-foreground-tertiary mt-2">{sub}</p>
                 </div>
-                <div className={`w-12 h-12 bg-${color}/10 rounded-lg flex items-center justify-center`}>
-                  <span className={`text-lg font-bold text-${color}`}>{value}</span>
+                <div className={`bg-${color}/10 p-3 rounded-lg`}>
+                  <Icon className={`w-6 h-6 text-${color}`} />
                 </div>
               </div>
             </div>

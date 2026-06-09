@@ -4,6 +4,7 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
+import { Activity, Layers, Clock, Shield } from 'lucide-react';
 import { useActiveSessions, useUsageTrends, useDepartmentDistribution, usePeakHours } from '@/hooks/use-analytics';
 import { useWorkers } from '@/hooks/use-workers';
 import { useSupervisors } from '@/hooks/use-supervisors';
@@ -63,29 +64,25 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm font-medium">Active Sessions</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{sessions}</p>
-          <p className="text-xs text-success mt-2">Supervisors online</p>
-        </div>
-
-        <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm font-medium">Departments</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{deptDist.length}</p>
-          <p className="text-xs text-success mt-2">Tracked</p>
-        </div>
-
-        <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm font-medium">Peak Hours Tracked</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{peakHours.length > 0 ? peakHours.length : '—'}</p>
-          <p className="text-xs text-success mt-2">Time slots</p>
-        </div>
-
-        <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm font-medium">System Uptime</p>
-          <p className="text-3xl font-bold text-foreground mt-2">99.9%</p>
-          <p className="text-xs text-success mt-2">Last 30 days</p>
-        </div>
+        {[
+          { label: 'Active Sessions',    value: sessions,                              sub: 'Supervisors online', color: 'primary', Icon: Activity },
+          { label: 'Departments',        value: deptDist.length,                       sub: 'Tracked',            color: 'info',    Icon: Layers },
+          { label: 'Peak Hours Tracked', value: peakHours.length > 0 ? peakHours.length : '—', sub: 'Time slots', color: 'warning', Icon: Clock },
+          { label: 'System Uptime',      value: '99.9%',                               sub: 'Last 30 days',       color: 'success', Icon: Shield },
+        ].map(({ label, value, sub, color, Icon }) => (
+          <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-foreground-secondary text-sm font-medium">{label}</p>
+                <p className={`text-3xl font-bold text-${color} mt-2`}>{value}</p>
+                <p className="text-xs text-foreground-tertiary mt-2">{sub}</p>
+              </div>
+              <div className={`bg-${color}/10 p-3 rounded-lg`}>
+                <Icon className={`w-6 h-6 text-${color}`} />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -78,6 +78,7 @@ export interface Supervisor {
 
 export interface Gateway {
   id: string;
+  name?: string;
   location: string;
   status: 'online' | 'offline';
   connected_helmets: number;

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, X, Mail, Phone, Briefcase, Users, Calendar, HardHat } from 'lucide-react';
+import { Eye, X, Mail, Phone, Briefcase, Users, Calendar, HardHat, UserCheck, AlertCircle, TrendingUp, Wifi } from 'lucide-react';
 import { useWorkers } from '@/hooks/use-workers';
-import type { Worker } from '@/lib/types';
+import { useGateways } from '@/hooks/use-gateways';
+import type { Worker, Gateway } from '@/lib/types';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -16,7 +17,7 @@ function Overlay({ onClick }: { onClick: () => void }) {
 }
 
 /* ─── View Worker Drawer ──────────────────────────────────── */
-function ViewWorkerDrawer({ worker, onClose }: { worker: Worker | null; onClose: () => void }) {
+function ViewWorkerDrawer({ worker, gateways, onClose }: { worker: Worker | null; gateways: Gateway[]; onClose: () => void }) {
   if (!worker) return null;
 
   const initials = (worker.name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -118,17 +119,21 @@ function ViewWorkerDrawer({ worker, onClose }: { worker: Worker | null; onClose:
               </div>
             )}
 
-            {worker.gateway_id && (
-              <div className="mt-3 flex items-center gap-4 p-4 rounded-2xl border border-border bg-background">
-                <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-4 h-4 text-primary" />
+            {worker.gateway_id && (() => {
+              const gw = gateways.find(g => g.id === worker.gateway_id);
+              const gwLabel = gw ? (gw.name || gw.location) : worker.gateway_id;
+              return (
+                <div className="mt-3 flex items-center gap-4 p-4 rounded-2xl border border-border bg-background">
+                  <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Wifi className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-foreground-tertiary font-medium">Gateway</p>
+                    <p className="text-sm font-semibold text-foreground mt-0.5">{gwLabel}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-foreground-tertiary font-medium">Gateway ID</p>
-                  <p className="text-sm font-semibold text-foreground mt-0.5 font-mono">{worker.gateway_id}</p>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </section>
         </div>
 
@@ -149,7 +154,9 @@ function ViewWorkerDrawer({ worker, onClose }: { worker: Worker | null; onClose:
 export default function WorkersPage() {
   const [viewWorker, setViewWorker] = useState<Worker | null>(null);
   const { data: workersRaw, isLoading } = useWorkers();
-  const workerList = (workersRaw as Worker[] | undefined) ?? [];
+  const { data: gatewaysRaw } = useGateways();
+  const workerList  = (workersRaw  as Worker[]  | undefined) ?? [];
+  const gatewayList = (gatewaysRaw as Gateway[] | undefined) ?? [];
 
   const activeCount    = workerList.filter(w => w.status === 'active').length;
   const inactiveCount  = workerList.length - activeCount;
@@ -166,11 +173,11 @@ export default function WorkersPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Workers',    value: workerList.length, color: 'primary',  sub: 'All accounts' },
-            { label: 'Active Workers',   value: activeCount,       color: 'success',  sub: 'Currently active' },
-            { label: 'Inactive Workers', value: inactiveCount,     color: 'warning',  sub: 'Need attention' },
-            { label: 'Activation Rate',  value: `${activationRate}%`, color: 'info',  sub: 'Active ratio' },
-          ].map(({ label, value, color, sub }) => (
+            { label: 'Total Workers',    value: workerList.length,    color: 'primary', sub: 'All accounts',      Icon: Users },
+            { label: 'Active Workers',   value: activeCount,          color: 'success', sub: 'Currently active',  Icon: UserCheck },
+            { label: 'Inactive Workers', value: inactiveCount,        color: 'warning', sub: 'Need attention',    Icon: AlertCircle },
+            { label: 'Activation Rate',  value: `${activationRate}%`, color: 'info',    sub: 'Active ratio',      Icon: TrendingUp },
+          ].map(({ label, value, color, sub, Icon }) => (
             <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -178,8 +185,8 @@ export default function WorkersPage() {
                   <p className={`text-3xl font-bold text-${color} mt-2`}>{value}</p>
                   <p className="text-xs text-foreground-tertiary mt-2">{sub}</p>
                 </div>
-                <div className={`w-12 h-12 bg-${color}/10 rounded-lg flex items-center justify-center`}>
-                  <span className={`text-base font-bold text-${color}`}>{value}</span>
+                <div className={`bg-${color}/10 p-3 rounded-lg`}>
+                  <Icon className={`w-6 h-6 text-${color}`} />
                 </div>
               </div>
             </div>
@@ -227,7 +234,7 @@ export default function WorkersPage() {
         </div>
       </div>
 
-      <ViewWorkerDrawer worker={viewWorker} onClose={() => setViewWorker(null)} />
+      <ViewWorkerDrawer worker={viewWorker} gateways={gatewayList} onClose={() => setViewWorker(null)} />
     </>
   );
 }

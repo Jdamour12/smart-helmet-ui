@@ -98,7 +98,7 @@ export default function NetworkStatus() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50">
-                <th className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">Gateway ID</th>
+                <th className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">Gateway Name</th>
                 <th className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">Location</th>
                 <th className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">Status</th>
                 <th className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">Connected</th>
@@ -109,7 +109,7 @@ export default function NetworkStatus() {
             <tbody>
               {gwList.map((gw) => (
                 <tr key={gw.id} className="border-b border-border/50 hover:bg-background/50">
-                  <td className="px-4 py-3 text-foreground text-sm font-medium">{gw.id}</td>
+                  <td className="px-4 py-3 text-foreground text-sm font-medium">{gw.name || gw.location}</td>
                   <td className="px-4 py-3 text-foreground text-sm">{gw.location}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-1 rounded font-medium ${

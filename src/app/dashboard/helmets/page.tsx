@@ -20,12 +20,20 @@ function Overlay({ onClick }: { onClick: () => void }) {
 function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: () => void; gateways: Gateway[] }) {
   const [form, setForm] = useState({ name: '', department: '', phone: '', gateway_id: '' });
   const { mutate: createWorker } = useCreateWorker();
+  const { mutate: createHelmet } = useCreateHelmet();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createWorker(
-      { name: form.name, department: form.department, phone: form.phone, gateway_id: form.gateway_id || undefined },
-      { onSuccess: () => onClose() },
+      { name: form.name, department: form.department, phone: form.phone } as any,
+      {
+        onSuccess: (newWorker: any) => {
+          createHelmet(
+            { worker_id: newWorker.id, gateway_id: form.gateway_id || undefined } as any,
+            { onSuccess: () => onClose() },
+          );
+        },
+      },
     );
   };
 
@@ -69,7 +77,7 @@ function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: 
               <select required value={form.gateway_id} onChange={e => setForm(f => ({ ...f, gateway_id: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
                 <option value="">Select gateway...</option>
-                {gateways.map(gw => <option key={gw.id} value={gw.id}>{gw.id} — {gw.location}</option>)}
+                {gateways.map(gw => <option key={gw.id} value={gw.id}>{gw.name || gw.location} — {gw.location}</option>)}
               </select>
             </div>
           </form>
@@ -84,10 +92,13 @@ function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: 
 }
 
 /* ─── View Worker drawer with live WebSocket data ────────── */
-function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; onClose: () => void; onEdit: (h: Helmet) => void }) {
+function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helmet | null; onClose: () => void; onEdit: (h: Helmet) => void; gateways: Gateway[] }) {
   const live = useHelmetLive(helmet?.id ?? null);
 
   if (!helmet) return null;
+
+  const gateway = gateways.find(gw => gw.id === helmet.gateway_id);
+  const gatewayLabel = gateway ? (gateway.name || gateway.location) : helmet.gateway_id;
 
   const co   = live?.co_ppm    ?? helmet.co   ?? 0;
   const ch4  = live?.gas_level ?? helmet.ch4  ?? 0;
@@ -213,7 +224,7 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
                 </div>
                 <div className="p-4 rounded-2xl border border-border bg-background">
                   <Radio className="w-4 h-4 text-foreground-secondary mb-2" />
-                  <p className="text-sm font-bold text-foreground">{helmet.gateway_id}</p>
+                  <p className="text-sm font-bold text-foreground truncate">{gatewayLabel}</p>
                   <p className="text-xs text-foreground-tertiary mt-0.5">Gateway</p>
                 </div>
                 <div className="p-4 rounded-2xl border border-border bg-background">
@@ -278,7 +289,7 @@ function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null
               <label className="text-sm font-medium text-foreground">Gateway Assignment <span className="text-critical">*</span></label>
               <select required value={form.gateway_id} onChange={e => setForm(f => ({ ...f, gateway_id: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                {gateways.map(gw => <option key={gw.id} value={gw.id}>{gw.id} — {gw.location}</option>)}
+                {gateways.map(gw => <option key={gw.id} value={gw.id}>{gw.name || gw.location} — {gw.location}</option>)}
               </select>
             </div>
             <div className="space-y-1.5">
@@ -406,7 +417,7 @@ export default function HelmetMonitoring() {
       </div>
 
       <AddWorkerDrawer open={addWorkerOpen} onClose={() => setAddWorkerOpen(false)} gateways={gwList} />
-      <ViewWorkerDrawer helmet={viewHelmet} onClose={() => setViewHelmet(null)} onEdit={h => { setViewHelmet(null); setEditHelmet(h); }} />
+      <ViewWorkerDrawer helmet={viewHelmet} onClose={() => setViewHelmet(null)} onEdit={h => { setViewHelmet(null); setEditHelmet(h); }} gateways={gwList} />
       <EditWorkerDrawer helmet={editHelmet} onClose={() => setEditHelmet(null)} gateways={gwList} />
     </>
   );
