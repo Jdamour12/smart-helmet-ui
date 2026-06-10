@@ -164,7 +164,7 @@ export default function EnvironmentAnalytics() {
                   : tempStatus === 'warning' || humStatus === 'warning' ? 'warning' : 'safe';
                 return (
                   <tr key={h.id} className="border-b border-border/50 hover:bg-background/50">
-                    <td className="px-4 py-3 text-foreground text-sm">{h.worker_name}</td>
+                    <td className="px-4 py-3 text-foreground text-sm">{((h as any).workerName ?? (h as any).worker_name) || '—'}</td>
                     <td className="px-4 py-3 text-foreground text-sm">{(h.temperature ?? 0).toFixed(1)}°C</td>
                     <td className="px-4 py-3 text-foreground text-sm">{(h.humidity ?? 0).toFixed(1)}%</td>
                     <td className="px-4 py-3">

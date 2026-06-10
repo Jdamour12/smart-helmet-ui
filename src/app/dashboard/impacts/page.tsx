@@ -145,7 +145,7 @@ export default function ImpactDetection() {
               <tbody>
                 {impactedHelmets.map((h) => (
                   <tr key={h.id} className="border-b border-border/50 hover:bg-background/50">
-                    <td className="px-4 py-3 text-foreground text-sm font-medium">{h.worker_name}</td>
+                    <td className="px-4 py-3 text-foreground text-sm font-medium">{((h as any).workerName ?? (h as any).worker_name) || '—'}</td>
                     <td className="px-4 py-3">
                       <span className="text-xs px-2 py-1 rounded font-medium bg-critical/10 text-critical">Impact Detected</span>
                     </td>

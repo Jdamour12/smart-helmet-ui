@@ -158,7 +158,7 @@ export default function GasAnalytics() {
                     : 'safe';
                 return (
                   <tr key={h.id} className="border-b border-border/50 hover:bg-background/50">
-                    <td className="px-4 py-3 text-foreground text-sm">{h.worker_name}</td>
+                    <td className="px-4 py-3 text-foreground text-sm">{((h as any).workerName ?? (h as any).worker_name) || '—'}</td>
                     <td className="px-4 py-3 text-foreground text-sm">{(h.co ?? 0).toFixed(1)} ppm</td>
                     <td className="px-4 py-3 text-foreground text-sm">{(h.ch4 ?? 0).toFixed(2)}%</td>
                     <td className="px-4 py-3">

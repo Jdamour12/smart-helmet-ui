@@ -76,8 +76,8 @@ export function AlertFeed({ alerts, maxItems = 8 }: AlertFeedProps) {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold text-slate-900">
-                      {alert.workerName}
-                    </p>
+                          {((alert as any).workerName ?? (alert as any).worker_name) || '—'}
+                        </p>
                     <p className="text-sm text-slate-700 mt-1">{alert.message}</p>
                   </div>
                   <span className={`text-xs whitespace-nowrap py-1 px-2 rounded ${

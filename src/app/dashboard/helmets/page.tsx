@@ -116,7 +116,8 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
   const impact = live?.vibration_detected ?? helmet.impact_detected;
   const lastTs = live?.recorded_at ?? helmet.last_update;
 
-  const initials = (helmet.worker_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const _workerName = ((helmet as any).workerName ?? (helmet as any).worker_name) || '?';
+  const initials = _workerName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <>
@@ -127,7 +128,7 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
             <div className="flex items-center gap-5">
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold text-white flex-shrink-0 ${helmet.status === 'alarm' ? 'bg-critical' : 'bg-primary'}`}>{initials}</div>
               <div>
-                <h2 className="text-xl font-bold text-foreground">{helmet.worker_name}</h2>
+                <h2 className="text-xl font-bold text-foreground">{_workerName}</h2>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <span className="text-xs text-foreground-tertiary bg-background px-2 py-0.5 rounded-md border border-border font-mono">{helmet.worker_id}</span>
                   <span className="text-xs text-foreground-tertiary bg-background px-2 py-0.5 rounded-md border border-border font-mono">{helmet.id}</span>
@@ -259,7 +260,7 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
 /* ─── Edit Worker drawer ─────────────────────────────────── */
 function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null; onClose: () => void; gateways: Gateway[] }) {
   if (!helmet) return null;
-  const [form, setForm] = useState({ name: helmet.worker_name, gateway_id: helmet.gateway_id, status: helmet.status as 'active' | 'inactive' | 'alarm' });
+  const [form, setForm] = useState({ name: ((helmet as any).workerName ?? (helmet as any).worker_name) || '', gateway_id: helmet.gateway_id, status: helmet.status as 'active' | 'inactive' | 'alarm' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -274,7 +275,7 @@ function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null
         <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
           <div>
             <h2 className="text-base font-semibold text-foreground">Edit Worker</h2>
-            <p className="text-xs text-foreground-tertiary mt-0.5">{helmet.worker_name} · {helmet.worker_id}</p>
+              <p className="text-xs text-foreground-tertiary mt-0.5">{((helmet as any).workerName ?? (helmet as any).worker_name) || '—'} · {(helmet as any).worker_id ?? (helmet as any).workerId}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-background-tertiary rounded-lg transition-colors"><X className="w-4 h-4 text-foreground-secondary" /></button>
         </div>
@@ -389,7 +390,7 @@ export default function HelmetMonitoring() {
               <tbody>
                 {helmetList.map((helmet) => (
                   <tr key={helmet.id} className="border-b border-border/50 hover:bg-background/50 transition-colors">
-                    <td className="px-4 py-4 text-foreground text-sm font-medium">{helmet.worker_name}</td>
+                    <td className="px-4 py-4 text-foreground text-sm font-medium">{((helmet as any).workerName ?? (helmet as any).worker_name) || '—'}</td>
                     <td className="px-4 py-4">
                       <span className={`text-xs px-2 py-1 rounded font-medium flex items-center gap-1 w-fit ${helmet.status === 'active' ? 'bg-success/10 text-success' : helmet.status === 'alarm' ? 'bg-critical/10 text-critical' : 'bg-foreground-tertiary/10 text-foreground-tertiary'}`}>
                         <span className={`w-2 h-2 rounded-full ${helmet.status === 'active' ? 'bg-success' : helmet.status === 'alarm' ? 'bg-critical' : 'bg-foreground-tertiary'}`} />

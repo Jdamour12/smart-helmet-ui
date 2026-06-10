@@ -64,7 +64,7 @@ export default function ImpactDetection() {
                   <div className="w-3 h-3 rounded-full bg-critical mt-1.5 flex-shrink-0" />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="font-semibold text-foreground">{helmet.workerName}</p>
+                      <p className="font-semibold text-foreground">{((helmet as any).workerName ?? (helmet as any).worker_name) || '—'}</p>
                       <span className="text-xs px-2 py-1 rounded bg-critical/10 text-critical font-medium">
                         CRITICAL
                       </span>

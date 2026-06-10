@@ -99,7 +99,7 @@ export default function GasAnalytics() {
             <tbody>
               {mockHelmets.map((helmet) => (
                 <tr key={helmet.id} className="border-b border-border/50 hover:bg-background/50">
-                  <td className="px-4 py-3 text-foreground text-sm">{helmet.workerName}</td>
+                    <td className="px-4 py-3 text-foreground text-sm">{((helmet as any).workerName ?? (helmet as any).worker_name) || '—'}</td>
                   <td className="px-4 py-3 text-foreground text-sm">{helmet.co} ppm</td>
                   <td className="px-4 py-3 text-foreground text-sm">{helmet.ch4.toFixed(2)}%</td>
                   <td className="px-4 py-3">

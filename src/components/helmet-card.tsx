@@ -32,8 +32,8 @@ export function HelmetCard({ helmet }: HelmetCardProps) {
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="font-bold text-lg text-slate-900">{helmet.workerName}</h3>
-          <p className="text-xs text-slate-500">ID: {helmet.workerId}</p>
+          <h3 className="font-bold text-lg text-slate-900">{((helmet as any).workerName ?? (helmet as any).worker_name) || '—'}</h3>
+          <p className="text-xs text-slate-500">ID: {(helmet as any).workerId ?? (helmet as any).worker_id}</p>
         </div>
         <div className="flex items-center gap-2">
           {hasCritical && (

@@ -114,7 +114,7 @@ export default function ComplianceReports() {
                   className="border-b border-border/50 hover:bg-background/50"
                 >
                   <td className="px-4 py-3 text-foreground text-sm">
-                    {helmet.workerName}
+                    {((helmet as any).workerName ?? (helmet as any).worker_name) || '—'}
                   </td>
                   <td className="px-4 py-3 text-foreground text-sm">
                     {helmet.helmetWear ? "✓ Yes" : "✗ No"}
