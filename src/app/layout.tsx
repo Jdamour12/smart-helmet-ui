@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth bg-background text-foreground">
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased" suppressHydrationWarning>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

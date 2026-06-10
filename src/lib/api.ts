@@ -225,18 +225,34 @@ export const notifications = {
 
 export { saveToken, clearToken, getToken };
 
+// ─── Media URL helper ─────────────────────────────────────────────────────────
+// Backend saves avatar paths as "/uploads/avatars/uuid.jpg" (relative to origin).
+// Prefix with the backend host so the browser can load them.
+const BACKEND_ORIGIN = BASE_URL.replace(/\/api\/v1.*$/, '');
+export function resolveMediaUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  // If the path already has a URL scheme (http:, https:, blob:, data:, etc.), return as-is
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) return path;
+
+  // Ensure there's a single slash between backend origin and the path
+  return BACKEND_ORIGIN.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
+}
+
 // ─── Types (local shapes matching backend responses) ─────────────────────────
 
 export interface User {
   id: string;
-  name: string;
+  full_name: string;       // backend field name
   email: string;
-  role: 'supervisor' | 'admin';
+  role: 'supervisor' | 'admin' | 'worker';
+  is_active?: boolean;
+  is_verified?: boolean;
+  avatar_url?: string;
+  // local-only fields — stored in localStorage, not sent to backend
   phone?: string;
   department?: string;
   location?: string;
   bio?: string;
-  avatar_url?: string;
 }
 
 export interface Helmet {
@@ -267,25 +283,39 @@ export interface SensorReading {
   signal_strength: number;
 }
 
+export interface UserBrief {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  avatar_url?: string;
+}
+
 export interface Worker {
   id: string;
-  name: string;
-  email: string;
-  department: string;
+  full_name: string;
+  employee_id: string;
   phone?: string;
-  status: 'active' | 'inactive';
+  zone?: string;
+  is_active: boolean;
   supervisor_id?: string;
-  gateway_id?: string;
+  user_id?: string;
+  user?: UserBrief;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Supervisor {
   id: string;
-  name: string;
-  email: string;
-  department: string;
-  status: 'active' | 'inactive';
-  worker_count?: number;
-  gateway_count?: number;
+  full_name: string;
+  employee_id: string;
+  phone?: string;
+  is_active: boolean;
+  user_id?: string;
+  user?: UserBrief;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Gateway {

@@ -6,8 +6,13 @@ import {
   Edit3, Building2, IdCard, Wifi, X, Camera, UserCheck,
   Eye, EyeOff, Lock, CheckCircle2,
 } from 'lucide-react';
-import { auth } from '@/lib/api';
+import { auth, resolveMediaUrl } from '@/lib/api';
 import type { User } from '@/lib/api';
+
+function persistUser(u: User) {
+  localStorage.setItem('user', JSON.stringify(u));
+  window.dispatchEvent(new Event('userUpdated'));
+}
 
 /* ─── Change Password Drawer ──────────────────────────────── */
 function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -185,33 +190,39 @@ function ChangePasswordDrawer({ open, onClose }: { open: boolean; onClose: () =>
 }
 
 /* ─── Edit Profile Drawer ─────────────────────────────────── */
-interface EditProfileDrawerProps {
+function EditProfileDrawer({ open, user, onSave, onClose }: {
   open: boolean;
   user: User;
-  avatarUrl: string | null;
-  onAvatarChange: (url: string) => void;
   onSave: (u: User) => void;
   onClose: () => void;
-}
-
-function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onClose }: EditProfileDrawerProps) {
-  const [form, setForm]     = useState({ ...user });
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState('');
-  const fileRef             = useRef<HTMLInputElement>(null);
+}) {
+  const [form, setForm]         = useState({ ...user });
+  const [saving, setSaving]     = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError]       = useState('');
+  const fileRef                 = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setForm({ ...user }); }, [user]);
 
   if (!open) return null;
 
+  const avatarSrc = resolveMediaUrl(form.avatar_url);
+  const initials  = (form.full_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploading(true);
     try {
-      const res = await auth.uploadAvatar(file) as { avatar_url: string };
-      onAvatarChange(res.avatar_url);
+      const res = await auth.uploadAvatar(file) as { avatar_url?: string };
+      const updated = { ...form, avatar_url: res.avatar_url ?? form.avatar_url };
+      setForm(updated);
+      persistUser(updated);
+      onSave(updated);
     } catch {
-      onAvatarChange(URL.createObjectURL(file));
+      setForm(f => ({ ...f, avatar_url: URL.createObjectURL(file) }));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -221,14 +232,21 @@ function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onCl
     setSaving(true);
     try {
       const updated = await auth.updateMe({
-        name: form.name,
+        full_name: form.full_name,
         email: form.email,
-        phone: form.phone,
-        location: form.location,
+      } as Parameters<typeof auth.updateMe>[0]) as User;
+
+      const merged: User = {
+        ...updated,
+        phone:      form.phone,
+        location:   form.location,
         department: form.department,
-        bio: form.bio,
-      }) as User;
-      onSave(updated);
+        bio:        form.bio,
+        avatar_url: form.avatar_url ?? updated.avatar_url,
+      };
+
+      persistUser(merged);
+      onSave(merged);
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save changes');
@@ -236,8 +254,6 @@ function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onCl
       setSaving(false);
     }
   };
-
-  const initials = (form.name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <>
@@ -262,24 +278,26 @@ function EditProfileDrawer({ open, user, avatarUrl, onAvatarChange, onSave, onCl
               <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
                 <div className="w-20 h-20 rounded-2xl bg-critical flex items-center justify-center
                   text-2xl font-bold text-white overflow-hidden">
-                  {avatarUrl
-                    ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                  {avatarSrc
+                    ? <img src={avatarSrc} alt="avatar" className="w-full h-full object-cover" />
                     : initials}
                 </div>
                 <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center
                   opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="w-5 h-5 text-white" />
+                  {uploading
+                    ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <Camera className="w-5 h-5 text-white" />}
                 </div>
               </div>
               <button type="button" onClick={() => fileRef.current?.click()}
                 className="text-xs font-semibold text-primary hover:text-primary-dark transition-colors">
-                Change Photo
+                {uploading ? 'Uploading...' : 'Change Photo'}
               </button>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
             </div>
 
             {[
-              { label: 'Full Name', key: 'name', type: 'text', required: true },
+              { label: 'Full Name', key: 'full_name', type: 'text', required: true },
               { label: 'Email', key: 'email', type: 'email', required: true },
               { label: 'Phone', key: 'phone', type: 'tel', required: false },
               { label: 'Location', key: 'location', type: 'text', required: false },
@@ -338,17 +356,26 @@ export default function AdminProfilePage() {
   const [user, setUser]         = useState<User | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [pwOpen, setPwOpen]     = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
+    const stored = localStorage.getItem('user');
+    const local: Partial<User> = stored ? JSON.parse(stored) : {};
+
     auth.me().then(u => {
       const userData = u as User;
-      setUser(userData);
-      if (userData.avatar_url) setAvatarUrl(userData.avatar_url);
+      const merged: User = {
+        ...userData,
+        phone:      local.phone,
+        location:   local.location,
+        department: local.department,
+        bio:        local.bio,
+        avatar_url: userData.avatar_url ?? local.avatar_url,
+      };
+      setUser(merged);
+      persistUser(merged);
     }).catch(() => {
-      const stored = localStorage.getItem('user');
-      if (stored) setUser(JSON.parse(stored) as User);
+      if (local.id) setUser(local as User);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -360,7 +387,8 @@ export default function AdminProfilePage() {
     );
   }
 
-  const initials = (user.name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const initials  = (user.full_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const avatarSrc = resolveMediaUrl(user.avatar_url);
 
   return (
     <>
@@ -369,13 +397,13 @@ export default function AdminProfilePage() {
           <div className="flex items-center gap-5">
             <div className="w-20 h-20 rounded-2xl bg-critical flex items-center justify-center
               text-2xl font-bold text-white flex-shrink-0 overflow-hidden shadow-md">
-              {avatarUrl
-                ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              {avatarSrc
+                ? <img src={avatarSrc} alt="avatar" className="w-full h-full object-cover" />
                 : initials}
             </div>
             <div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-bold text-foreground">{user.name}</h1>
+                <h1 className="text-2xl font-bold text-foreground">{user.full_name}</h1>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
                   bg-critical/10 text-critical text-xs font-semibold border border-critical/20">
                   <Shield className="w-3 h-3" />
@@ -402,7 +430,7 @@ export default function AdminProfilePage() {
             <h2 className="text-base font-semibold text-foreground mb-6">Personal Information</h2>
             <div className="space-y-4">
               {[
-                { icon: IdCard,    label: 'Full Name',   value: user.name },
+                { icon: IdCard,    label: 'Full Name',   value: user.full_name },
                 { icon: Mail,      label: 'Email',       value: user.email },
                 { icon: Phone,     label: 'Phone',       value: user.phone || '—' },
                 { icon: MapPin,    label: 'Location',    value: user.location || '—' },
@@ -489,8 +517,6 @@ export default function AdminProfilePage() {
       <EditProfileDrawer
         open={editOpen}
         user={user}
-        avatarUrl={avatarUrl}
-        onAvatarChange={setAvatarUrl}
         onSave={setUser}
         onClose={() => setEditOpen(false)}
       />

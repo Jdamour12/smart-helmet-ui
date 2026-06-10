@@ -44,8 +44,8 @@ export default function AdminDashboard() {
         setCritical(lv.find(x => x.level === 'critical')?.count ?? 0);
         setAlertsToday(lv.reduce((acc, x) => acc + x.count, 0));
         setSupDist([
-          { name: 'Active',   value: s.filter(x => x.status === 'active').length },
-          { name: 'Inactive', value: s.filter(x => x.status === 'inactive').length },
+          { name: 'Active',   value: s.filter(x => x.is_active).length },
+          { name: 'Inactive', value: s.filter(x => !x.is_active).length },
         ]);
         setAuditLogs(l);
         setPerformance(perf as Performance);
@@ -65,8 +65,8 @@ export default function AdminDashboard() {
   }
 
   const onlineGateways = gwList.filter(g => g.status === 'online').length;
-  const activeWorkers  = workerList.filter(w => w.status === 'active').length;
-  const activeSups     = supList.filter(s => s.status === 'active').length;
+  const activeWorkers  = workerList.filter(w => w.is_active).length;
+  const activeSups     = supList.filter(s => s.is_active).length;
 
   return (
     <div className="p-6 space-y-6">

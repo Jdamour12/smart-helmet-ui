@@ -3,7 +3,7 @@
 import { Menu, Bell, User, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { clearToken } from "@/lib/api";
+import { clearToken, resolveMediaUrl, auth } from "@/lib/api";
 import type { User as AppUser } from "@/lib/api";
 import {
   DropdownMenu,
@@ -18,15 +18,38 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const [user, setUser] = useState<AppUser | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try { setUser(JSON.parse(stored) as AppUser); } catch { /* ignore */ }
-    }
+    const readStorage = () => {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        try { setUser(JSON.parse(stored) as AppUser); } catch { /* ignore */ }
+      }
+    };
+    readStorage();
+    window.addEventListener("userUpdated", readStorage);
+
+    auth.me().then((u) => {
+      const server = u as AppUser;
+      const stored = localStorage.getItem("user");
+      const local: Partial<AppUser> = stored ? JSON.parse(stored) : {};
+      const merged: AppUser = {
+        ...server,
+        phone:      local.phone,
+        location:   local.location,
+        department: local.department,
+        bio:        local.bio,
+        avatar_url: server.avatar_url ?? local.avatar_url,
+      };
+      localStorage.setItem("user", JSON.stringify(merged));
+      setUser(merged);
+    }).catch(() => { /* keep localStorage value on network error */ });
+
+    return () => window.removeEventListener("userUpdated", readStorage);
   }, []);
 
-  const initials = user?.name
-    ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+  const initials  = user?.full_name
+    ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "?";
+  const avatarSrc = resolveMediaUrl(user?.avatar_url);
 
   const handleLogout = () => {
     clearToken();
@@ -60,8 +83,10 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-9 h-9 bg-primary rounded-full flex items-center justify-center hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary/40">
-              <span className="text-sm font-bold text-primary-foreground select-none">{initials}</span>
+            <button className="w-9 h-9 bg-primary rounded-full flex items-center justify-center hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary/40 overflow-hidden">
+              {avatarSrc
+                ? <img src={avatarSrc} alt="avatar" className="w-full h-full object-cover" />
+                : <span className="text-sm font-bold text-primary-foreground select-none">{initials}</span>}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -70,7 +95,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
             style={{ "--accent": "var(--sidebar-accent)", "--accent-foreground": "var(--sidebar-foreground)" } as React.CSSProperties}
           >
             <div className="px-3 py-3">
-              <p className="font-semibold text-foreground text-sm">{user?.name ?? "Supervisor"}</p>
+              <p className="font-semibold text-foreground text-sm">{user?.full_name ?? "Supervisor"}</p>
               <p className="text-xs text-foreground-tertiary mt-0.5">{user?.email ?? ""}</p>
             </div>
             <DropdownMenuSeparator />
