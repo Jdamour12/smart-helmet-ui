@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLogin } from '@/hooks/use-auth';
+
+const REMEMBER_KEY = 'safehelm_remember';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,17 +14,50 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [role, setRole] = useState<'supervisor' | 'admin'>('supervisor');
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const { mutate: login, isPending, error } = useLogin();
+  const { mutate: login, isPending } = useLogin();
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBER_KEY);
+      if (saved) {
+        const { email: savedEmail, password: savedPassword } = JSON.parse(saved);
+        if (savedEmail) setEmail(savedEmail);
+        if (savedPassword) setPassword(savedPassword);
+        setRememberMe(true);
+      }
+    } catch {
+      // ignore corrupt data
+    }
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Save or clear credentials based on Remember Me
+    if (rememberMe) {
+      localStorage.setItem(REMEMBER_KEY, JSON.stringify({ email, password }));
+    } else {
+      localStorage.removeItem(REMEMBER_KEY);
+    }
+
     login(
-      { email, password, role },
+      { email, password },
       {
-        onSuccess: () => {
-          router.push(role === 'admin' ? '/admin' : '/dashboard');
+        onSuccess: (data) => {
+          try {
+            const stored = localStorage.getItem('user');
+            const me = stored ? JSON.parse(stored) : null;
+            const role = me?.role ?? data.user?.role;
+            router.push(role === 'admin' ? '/admin' : '/dashboard');
+          } catch {
+            router.push('/dashboard');
+          }
+        },
+        onError: (err) => {
+          setErrorMsg(err instanceof Error ? err.message : 'Invalid email or password. Please try again.');
         },
       },
     );
@@ -62,41 +97,14 @@ export default function LoginPage() {
             <p className="text-foreground-secondary text-lg">Mining Safety Helmet Monitoring</p>
           </div>
 
-          {/* Role Selection */}
-          <div className="bg-background-secondary border border-border rounded-lg p-4">
-            <p className="text-sm font-medium text-foreground-secondary mb-3">Login as:</p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setRole('supervisor')}
-                className={`py-2 px-4 rounded-lg font-medium transition-colors ${
-                  role === 'supervisor'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background border border-border text-foreground hover:border-primary'
-                }`}
-              >
-                Supervisor
-              </button>
-              <button
-                onClick={() => setRole('admin')}
-                className={`py-2 px-4 rounded-lg font-medium transition-colors ${
-                  role === 'admin'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background border border-border text-foreground hover:border-primary'
-                }`}
-              >
-                Administrator
-              </button>
-            </div>
-          </div>
-
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-foreground">Email or Username</label>
+              <label className="block text-sm font-medium text-foreground">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={role === 'admin' ? 'admin@safehelm.com' : 'supervisor@safehelm.com'}
+                placeholder="you@example.com"
                 className="w-full px-4 py-3 bg-background-secondary border border-border rounded-lg text-foreground placeholder-foreground-tertiary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                 required
               />
@@ -138,9 +146,9 @@ export default function LoginPage() {
               </label>
             </div>
 
-            {error && (
+            {errorMsg && (
               <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-500">
-                {error instanceof Error ? error.message : 'Invalid credentials'}
+                {errorMsg}
               </div>
             )}
 

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -45,19 +46,21 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0 lg:static lg:z-0`}
       >
-        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-critical rounded flex items-center justify-center">
-              <span className="text-[10px] font-bold text-white">A</span>
-            </div>
-            <h2 className="text-sm font-semibold text-foreground">Admin</h2>
-          </div>
+        <div className="px-6 py-4 border-b border-sidebar-border relative flex items-center justify-center">
           <button
             onClick={onClose}
-            className="lg:hidden p-1 hover:bg-sidebar-accent rounded transition-colors"
+            className="lg:hidden absolute top-1/2 -translate-y-1/2 right-3 p-1 hover:bg-sidebar-accent rounded transition-colors z-10"
           >
             <X className="w-4 h-4" />
           </button>
+          <Image
+            src="/the_logo.png"
+            alt="SafeHelm Logo"
+            width={140}
+            height={40}
+            className="h-10 w-auto object-contain"
+            priority
+          />
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">

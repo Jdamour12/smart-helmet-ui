@@ -31,8 +31,12 @@ export async function http<T>(path: string, options: RequestInit = {}): Promise<
 
   if (res.status === 401) {
     clearToken();
-    window.location.href = '/login';
-    throw new Error('Unauthorized');
+    if (token) {
+      // Session expired — force re-login
+      window.location.href = '/login';
+    }
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as any).detail || 'Invalid email or password');
   }
 
   if (!res.ok) {

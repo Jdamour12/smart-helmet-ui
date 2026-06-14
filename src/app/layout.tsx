@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: 'SafeHelm Dashboard - Mining Safety Monitoring',
   description: 'Real-time monitoring dashboard for smart safety helmets in mining operations.',
   generator: 'v0.app',
+  icons: {
+    icon: '/the_logo.png',
+    apple: '/the_logo.png',
+  },
 }
 
 export default function RootLayout({

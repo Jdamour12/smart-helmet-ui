@@ -34,7 +34,7 @@ export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-background-secondary border-b border-border px-5 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-background-secondary border-b border-border px-5 py-4.5 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuClick}
@@ -44,10 +44,7 @@ export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
           <Menu className="w-5 h-5 text-foreground" />
         </button>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-critical rounded-lg flex items-center justify-center">
-            <Shield className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-lg font-semibold text-foreground hidden sm:block">Admin Portal</h1>
+          <h1 className="text-xl font-semibold text-foreground hidden sm:block">Admin Portal</h1>
         </div>
       </div>
 
