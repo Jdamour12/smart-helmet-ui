@@ -56,14 +56,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           >
             <X className="w-4 h-4" />
           </button>
-          <Image
-            src="/the_logo.png"
-            alt="SafeHelm Logo"
-            width={140}
-            height={40}
-            className="h-10 w-auto object-contain"
-            priority
-          />
+          <Link href="/dashboard" onClick={onClose}>
+            <Image
+              src="/the_logo.png"
+              alt="SafeHelm Logo"
+              width={48}
+              height={48}
+              className="w-12 h-12 object-cover rounded-full"
+              priority
+            />
+          </Link>
         </div>
 
         {/* Navigation */}

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useLogin } from '@/hooks/use-auth';
 
@@ -72,6 +73,19 @@ export default function LoginPage() {
           style={{ backgroundImage: 'url(/mining-safety.jpg)' }}
         />
         <div className="absolute inset-0 bg-black/40" />
+        {/* Logo top-left */}
+        <div className="absolute top-8 left-8 z-10">
+          <Link href="/">
+            <Image
+              src="/the_logo.png"
+              alt="SafeHelm"
+              width={72}
+              height={72}
+              className="w-18 h-18 object-cover rounded-full drop-shadow-lg"
+              priority
+            />
+          </Link>
+        </div>
         <div className="absolute inset-0 flex flex-col justify-end p-12">
           <div className="space-y-6">
             <p className="text-white text-xl font-semibold leading-relaxed max-w-lg">
@@ -84,14 +98,6 @@ export default function LoginPage() {
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 lg:py-0">
         <div className="w-full max-w-md space-y-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-foreground-secondary hover:text-primary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
-
           <div className="text-center space-y-3">
             <h1 className="text-4xl font-bold text-foreground">SmartHelmet</h1>
             <p className="text-foreground-secondary text-lg">Mining Safety Helmet Monitoring</p>
@@ -160,14 +166,6 @@ export default function LoginPage() {
               {isPending ? 'Logging in...' : 'Log in'}
             </button>
           </form>
-
-          <div className="bg-background-secondary border border-border/50 rounded-lg p-4 space-y-2">
-            <p className="text-xs font-medium text-foreground-secondary uppercase">Demo Credentials</p>
-            <div className="space-y-1 text-xs text-foreground-tertiary">
-              <p><span className="font-medium">Supervisor:</span> supervisor@safehelm.com / password</p>
-              <p><span className="font-medium">Admin:</span> admin@safehelm.com / password</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
