@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Users, Zap, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Users, Zap, TrendingUp, ShieldAlert } from 'lucide-react';
 import { useAnalyticsSummary, useGasLevels, useCompliance, useAlertsByLevel, useAlertTrends, useNetworkHealth } from '@/hooks/use-analytics';
 import { useAlertFeed } from '@/hooks/use-alerts';
 import type { Alert } from '@/lib/types';
@@ -27,6 +27,7 @@ export default function Dashboard() {
   const avgGasLevel     = g?.avg_co_ppm ?? 0;
   const complianceRate  = Math.round(c?.compliance_rate_pct ?? 0);
   const recentAlerts    = (feed as Alert[] | undefined) ?? [];
+  const aiDangerCount   = recentAlerts.filter(a => a.type === 'multi' && (new Date(a.timestamp).getTime() > (Date.now() - 24 * 60 * 60 * 1000))).length;
 
   const alertTrends = (tr ?? []).map(d => ({
     name: new Date(d.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -76,11 +77,11 @@ export default function Dashboard() {
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-foreground-secondary text-sm font-medium">Avg CO Level</p>
-              <p className="text-3xl font-bold text-foreground mt-2">{avgGasLevel.toFixed(1)} ppm</p>
-              <p className="text-xs text-foreground-tertiary mt-2">CO concentration</p>
+              <p className="text-foreground-secondary text-sm font-medium">AI Danger Detections</p>
+              <p className="text-3xl font-bold text-critical mt-2">{aiDangerCount}</p>
+              <p className="text-xs text-foreground-tertiary mt-2">Last 24 hours</p>
             </div>
-            <div className="bg-warning/10 p-3 rounded-lg"><Zap className="w-6 h-6 text-warning" /></div>
+            <div className="bg-critical/10 p-3 rounded-lg"><ShieldAlert className="w-6 h-6 text-critical" /></div>
           </div>
         </div>
 

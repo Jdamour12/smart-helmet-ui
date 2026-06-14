@@ -121,6 +121,8 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helme
   const signal  = live?.signal_strength     ?? helmet.signal_strength ?? 0;
   const lastTs = live?.recorded_at         ?? helmet.last_update;
 
+  const reading = (live ?? helmet) as any;
+
   const initials = (helmet.worker_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
@@ -202,6 +204,58 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helme
                 <p className="text-xs text-foreground-tertiary mt-1">relative humidity</p>
               </div>
             </div>
+          </section>
+
+          {/* AI Inference Results */}
+          <section>
+            <h3 className="text-sm font-semibold text-foreground-secondary uppercase tracking-wide">AI Safety Prediction</h3>
+
+            <div className={`rounded-lg p-4 border ${
+              reading?.ai_prediction === 'danger'
+                ? 'bg-critical/5 border-critical/20'
+                : reading?.ai_prediction === 'safe'
+                ? 'bg-success/5 border-success/20'
+                : 'bg-background-tertiary border-border'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Overall Prediction</span>
+                <span className={`text-sm font-bold ${
+                  reading?.ai_prediction === 'danger' ? 'text-critical' :
+                  reading?.ai_prediction === 'safe' ? 'text-success' : 'text-foreground-tertiary'
+                }`}>
+                  {reading?.ai_prediction?.toUpperCase() ?? 'UNKNOWN'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs text-foreground-tertiary">Confidence</span>
+                <span className="text-xs text-foreground">{reading?.ai_confidence ?? 0}%</span>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-xs text-foreground-tertiary">Danger Votes</span>
+                <span className="text-xs text-foreground">{reading?.ai_danger_votes ?? 0} / 4 models</span>
+              </div>
+            </div>
+
+            {reading?.ai_model_votes && (
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                {Object.entries({
+                  'Isolation Forest': reading.ai_model_votes.isolation_forest,
+                  'Random Forest':    reading.ai_model_votes.random_forest,
+                  'LSTM':             reading.ai_model_votes.lstm,
+                  'SVM':              reading.ai_model_votes.svm,
+                }).map(([model, vote]) => (
+                  <div key={model} className="bg-background rounded-lg p-3 border border-border">
+                    <p className="text-xs text-foreground-tertiary">{model}</p>
+                    <p className={`text-sm font-semibold mt-1 ${
+                      vote === 'danger' ? 'text-critical' :
+                      vote === 'safe'   ? 'text-success'  : 'text-foreground-tertiary'
+                    }`}>
+                      {vote?.toUpperCase() ?? '—'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Safety Status */}
@@ -407,7 +461,7 @@ export default function HelmetMonitoring() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
-                  {['Worker', 'Status', 'CO / CH4', 'Temp / Humidity', 'Helmet Wear', 'Battery', 'Actions'].map(h => (
+                  {['Worker', 'Status', 'CO / CH4', 'Temp / Humidity', 'Helmet Wear', 'AI Prediction', 'Battery', 'Zone', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-foreground-secondary text-sm font-semibold">{h}</th>
                   ))}
                 </tr>
@@ -429,6 +483,12 @@ export default function HelmetMonitoring() {
                         {helmet.helmet_wear ? 'Yes' : 'No'}
                       </span>
                     </td>
+                    
+                    <td className="px-4 py-4">
+                      <span className={`text-xs px-2 py-1 rounded font-medium ${helmet.ai_prediction === 'danger' ? 'bg-critical/10 text-critical' : helmet.ai_prediction === 'safe' ? 'bg-success/10 text-success' : 'bg-foreground-tertiary/10 text-foreground-tertiary'}`}>
+                        {helmet.ai_prediction === 'danger' ? `DANGER (${helmet.ai_danger_votes ?? 0}/4)` : helmet.ai_prediction === 'safe' ? `Safe ${helmet.ai_confidence ? `(${helmet.ai_confidence}%)` : ''}` : '—'}
+                      </span>
+                    </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-1">
                         <div className="h-2 w-16 bg-background rounded-full overflow-hidden">
@@ -437,6 +497,7 @@ export default function HelmetMonitoring() {
                         <span className="text-xs text-foreground-secondary">{helmet.battery ?? 0}%</span>
                       </div>
                     </td>
+                    <td className="px-4 py-4 text-foreground text-sm">{helmet.est_zone ?? '-'}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <button onClick={() => setViewHelmet(helmet)} className="p-1.5 hover:bg-background rounded transition-colors" title="View"><Eye className="w-4 h-4 text-primary" /></button>

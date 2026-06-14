@@ -31,6 +31,11 @@ export function AlertFeed({ alerts, maxItems = 8 }: AlertFeedProps) {
         return 'border-l-4 border-blue-500 bg-blue-50';
     }
   };
+  
+  const getAlertLabel = (alert: Alert) => {
+    if (alert.type === 'multi') return 'AI Danger Alert';
+    return alert.level.charAt(0).toUpperCase() + alert.level.slice(1);
+  };
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -71,7 +76,7 @@ export function AlertFeed({ alerts, maxItems = 8 }: AlertFeedProps) {
               className={`px-6 py-4 flex gap-4 ${getAlertColor(alert.level)} transition-colors`}
             >
               <div className="flex-shrink-0 mt-0.5">
-                {getAlertIcon(alert.level)}
+                {alert.type === 'multi' ? <AlertTriangle className="w-5 h-5 text-red-600" /> : getAlertIcon(alert.level)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
@@ -82,13 +87,13 @@ export function AlertFeed({ alerts, maxItems = 8 }: AlertFeedProps) {
                     <p className="text-sm text-slate-700 mt-1">{alert.message}</p>
                   </div>
                   <span className={`text-xs whitespace-nowrap py-1 px-2 rounded ${
-                    alert.level === 'critical'
+                    alert.type === 'multi' ? 'bg-red-200 text-red-700' : alert.level === 'critical'
                       ? 'bg-red-200 text-red-700'
                       : alert.level === 'warning'
                         ? 'bg-yellow-200 text-yellow-700'
                         : 'bg-blue-200 text-blue-700'
                   }`}>
-                    {alert.level.charAt(0).toUpperCase() + alert.level.slice(1)}
+                    {getAlertLabel(alert)}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-2">

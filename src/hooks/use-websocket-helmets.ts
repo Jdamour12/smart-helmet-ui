@@ -1,6 +1,7 @@
-'use client';
+ 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { helmetUrl } from '@/lib/ws';
 import type { SensorReading } from '@/lib/types';
 
@@ -58,13 +59,19 @@ function mapWsPayload(raw: HelmetWsPayload): SensorReading | null {
     ai_prediction: raw.ai_prediction,
     ai_confidence: raw.ai_confidence,
     ai_danger_votes: raw.ai_danger_votes,
-    ai_model_votes: raw.ai_model_votes,
+    ai_model_votes: raw.ai_model_votes ? {
+      isolation_forest: (raw.ai_model_votes as any).isolationForest ?? (raw.ai_model_votes as any).isolation_forest,
+      random_forest: (raw.ai_model_votes as any).randomForest ?? (raw.ai_model_votes as any).random_forest,
+      lstm: (raw.ai_model_votes as any).lstm,
+      svm: (raw.ai_model_votes as any).svm,
+    } : undefined,
     recorded_at: raw.recorded_at,
   };
 }
 
 export function useHelmetLive(helmetId: string | null) {
   const [data, setData] = useState<SensorReading | null>(null);
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (!helmetId) return;
@@ -74,6 +81,37 @@ export function useHelmetLive(helmetId: string | null) {
       try {
         const mapped = mapWsPayload(JSON.parse(e.data) as HelmetWsPayload);
         if (mapped) setData(mapped);
+        try {
+          // update per-helmet sensor-data cache
+          qc.setQueryData(['helmets', helmetId, 'sensor-data'], (old: any) => {
+            const arr = Array.isArray(old) ? old : [];
+            return [mapped, ...arr.slice(0, 9)];
+          });
+
+          // merge into helmet summary cache for immediate UI update
+          qc.setQueryData(['helmets', helmetId], (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              co: mapped.co_ppm ?? old.co,
+              ch4: mapped.ch4_percent ?? old.ch4,
+              temperature: mapped.temperature ?? old.temperature,
+              humidity: mapped.humidity ?? old.humidity,
+              helmet_wear: mapped.helmet_worn ?? old.helmet_wear,
+              impact_detected: mapped.vibration_detected ?? old.impact_detected,
+              battery: mapped.battery_level ?? old.battery,
+              signal_strength: mapped.signal_strength ?? old.signal_strength,
+              last_update: mapped.recorded_at ?? old.last_update,
+              est_zone: mapped.est_zone ?? old.est_zone,
+              ai_prediction: mapped.ai_prediction ?? old.ai_prediction,
+              ai_confidence: mapped.ai_confidence ?? old.ai_confidence,
+              ai_danger_votes: mapped.ai_danger_votes ?? old.ai_danger_votes,
+              ai_model_votes: mapped.ai_model_votes ?? old.ai_model_votes,
+            };
+          });
+        } catch (err) {
+          // ignore cache update errors
+        }
       } catch { /* ignore */ }
     };
     ws.onerror = () => ws.close();

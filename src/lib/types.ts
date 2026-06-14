@@ -33,6 +33,18 @@ export interface Helmet {
   signal_strength: number;
   gateway_id: string;
   last_update: string;
+  step_count?: number;
+  heading_deg?: number;
+  est_zone?: string;
+  ai_prediction?: 'safe' | 'danger' | 'unknown';
+  ai_confidence?: number;
+  ai_danger_votes?: number;
+  ai_model_votes?: {
+    isolation_forest?: string;
+    random_forest?: string;
+    lstm?: string;
+    svm?: string;
+  };
 }
 
 export interface SensorReading {
@@ -55,11 +67,28 @@ export interface SensorReading {
   step_count?: number;
   heading_deg?: number;
   est_zone?: string;
-  ai_prediction?: string;
+  ai_prediction?: 'safe' | 'danger' | 'unknown';
   ai_confidence?: number;
   ai_danger_votes?: number;
-  ai_model_votes?: Record<string, string>;
+  ai_model_votes?: {
+    isolation_forest?: string;
+    random_forest?: string;
+    lstm?: string;
+    svm?: string;
+  } | Record<string, string>;
   recorded_at?: string;
+}
+
+export interface AIResult {
+  prediction: 'safe' | 'danger' | 'unknown';
+  confidence: number;
+  danger_votes: number;
+  model_votes: {
+    isolation_forest: string;
+    random_forest: string;
+    lstm: string;
+    svm: string;
+  };
 }
 
 export interface Worker {
