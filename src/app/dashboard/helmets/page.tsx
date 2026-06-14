@@ -354,7 +354,7 @@ export default function HelmetMonitoring() {
   const gwList     = (gwRaw as Gateway[] | undefined) ?? [];
 
   const activeCount   = helmetList.filter(h => h.status === 'active').length;
-  const criticalCount = helmetList.filter(h => h.status === 'alarm' || h.status === 'critical' || h.status === 'warning').length;
+  const criticalCount = helmetList.filter(h => h.status === 'alarm').length;
   const avgBattery    = helmetList.length ? (helmetList.reduce((s, h) => s + (h.battery ?? 0), 0) / helmetList.length).toFixed(1) : '0';
   const wearingCount  = helmetList.filter(h => h.helmet_wear).length;
 

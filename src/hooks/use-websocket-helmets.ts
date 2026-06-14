@@ -36,11 +36,11 @@ interface HelmetWsPayload {
 function mapWsPayload(raw: HelmetWsPayload): SensorReading | null {
   if (raw.message) return null;
   return {
-    temperature: raw.temperature ?? 0,
-    humidity: raw.humidity ?? 0,
-    gas_level: raw.gas_level ?? 0,
-    co_ppm: raw.co_ppm ?? 0,
-    ch4_percent: raw.ch4_percent ?? 0,
+    temperature: raw.temperature,
+    humidity: raw.humidity,
+    gas_level: raw.gas_level,
+    co_ppm: raw.co_ppm,
+    ch4_percent: raw.ch4_percent,
     vibration_detected: raw.vibration_detected ?? false,
     helmet_worn: raw.helmet_worn ?? false,
     accelerometer_x: raw.accelerometer_x,
@@ -59,7 +59,7 @@ function mapWsPayload(raw: HelmetWsPayload): SensorReading | null {
     ai_confidence: raw.ai_confidence,
     ai_danger_votes: raw.ai_danger_votes,
     ai_model_votes: raw.ai_model_votes,
-    recorded_at: raw.recorded_at ?? new Date().toISOString(),
+    recorded_at: raw.recorded_at,
   };
 }
 

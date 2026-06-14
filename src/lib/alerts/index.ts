@@ -9,7 +9,7 @@ function mapAlert(raw: any): Alert {
     type: raw.type ?? 'unknown',
     level: raw.level ?? 'info',
     message: raw.message ?? '',
-    timestamp: raw.created_at ?? raw.timestamp ?? new Date().toISOString(),
+    timestamp: raw.created_at ?? raw.timestamp ?? '',
     resolved: raw.is_resolved ?? raw.resolved ?? false,
   };
 }

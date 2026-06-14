@@ -24,16 +24,18 @@ function mapWsAlert(raw: {
   message: string;
   helmet_id?: string;
   created_at: string;
+  worker_name?: string;
+  resolved?: boolean;
 }): Alert {
   return {
     id: raw.id,
     helmet_id: raw.helmet_id ?? '',
-    worker_name: 'Alert',
+    worker_name: raw.worker_name ?? 'Alert',
     type: raw.type,
     level: raw.level as Alert['level'],
     message: raw.message,
     timestamp: raw.created_at,
-    resolved: false,
+    resolved: raw.resolved ?? false,
   };
 }
 

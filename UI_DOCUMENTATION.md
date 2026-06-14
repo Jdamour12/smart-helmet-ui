@@ -77,6 +77,9 @@ src/
 │   │   └── page.tsx            # Supervisor dashboard home
 │   ├── login/page.tsx
 │   ├── forgot-password/page.tsx
+│   ├── reset-password/
+│   │   ├── page.tsx                      # Reset password route (token from email link)
+│   │   └── reset-password-form.tsx       # Form component (min 8-char password)
 │   ├── globals.css             # Global styles + CSS variables
 │   ├── layout.tsx              # Root layout (fonts + QueryProvider)
 │   └── page.tsx                # Landing page
@@ -720,7 +723,7 @@ Table columns: Worker, Status, CO / CH4, Temp / Humidity, Helmet Wear, Battery, 
 
 Drawers: `AddWorkerDrawer`, `ViewWorkerDrawer`, `EditWorkerDrawer`
 
-**Hooks used:** `useHelmets`, `useWorkers`, `useGateways`, `useDepartments`, `useCreateHelmet`, `useUpdateHelmet`, `useDeleteHelmet`
+**Hooks used:** `useHelmetsWithReadings`, `useWorkers`, `useGateways`, `useDepartments`, `useCreateHelmet`, `useUpdateHelmet`, `useDeleteHelmet`
 
 ---
 
@@ -732,7 +735,7 @@ Charts: BarChart for CO distribution, BarChart for CH4 distribution
 
 Table: Gas Levels by Helmet — Worker, CO Level, CH4 Level, Status badge
 
-**Hooks used:** `useGasLevels`, `useHelmets`
+**Hooks used:** `useGasLevels`, `useHelmetsWithReadings`
 
 ---
 
@@ -744,7 +747,7 @@ Charts: Temperature trend, Humidity trend
 
 Table: Environmental Data by Worker — Worker, Temperature, Humidity, Status badge
 
-**Hooks used:** `useEnvironment`, `useHelmets`
+**Hooks used:** `useEnvironment`, `useHelmetsWithReadings`
 
 ---
 

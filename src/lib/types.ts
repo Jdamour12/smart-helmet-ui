@@ -36,11 +36,11 @@ export interface Helmet {
 }
 
 export interface SensorReading {
-  temperature: number;
-  humidity: number;
-  gas_level: number;
-  co_ppm: number;
-  ch4_percent: number;
+  temperature?: number;
+  humidity?: number;
+  gas_level?: number;
+  co_ppm?: number;
+  ch4_percent?: number;
   vibration_detected: boolean;
   helmet_worn: boolean;
   accelerometer_x?: number;
@@ -59,7 +59,7 @@ export interface SensorReading {
   ai_confidence?: number;
   ai_danger_votes?: number;
   ai_model_votes?: Record<string, string>;
-  recorded_at: string;
+  recorded_at?: string;
 }
 
 export interface Worker {

@@ -24,6 +24,9 @@ export function compliance() {
   return http('/analytics/compliance');
 }
 
+// Returns a single-element array with the current compliance rate.
+// The backend does not expose a weekly time-series endpoint; consumers must
+// treat this as a snapshot, not a multi-point trend.
 export function complianceWeeklyTrend() {
   return compliance().then((c: any) => [{
     week: 'Current',
@@ -35,6 +38,9 @@ export function impacts() {
   return http('/analytics/impacts');
 }
 
+// Returns a single-element array with the total vibration event count.
+// The backend does not expose a per-day breakdown; consumers render this
+// as a single bar/point labeled 'Total', which is the designed behaviour.
 export function impactsWeeklyTrend() {
   return impacts().then((i: any) => [{
     day: 'Total',

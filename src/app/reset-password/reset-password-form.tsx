@@ -26,8 +26,8 @@ export default function ResetPasswordForm() {
       setError("Invalid or missing reset token. Request a new reset link.");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirm) {

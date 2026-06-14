@@ -11,7 +11,7 @@ export function mapGateway(raw: any): Gateway {
     status: status as 'online' | 'offline',
     connected_helmets: raw.connected_helmets ?? 0,
     signal_strength: raw.signal_strength ?? 0,
-    last_heartbeat: raw.last_heartbeat ?? raw.last_seen ?? new Date().toISOString(),
+    last_heartbeat: raw.last_heartbeat ?? raw.last_seen ?? '',
     ip_address: raw.ip_address,
   };
 }
