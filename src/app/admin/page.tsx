@@ -4,14 +4,15 @@ import { Users, UserCheck, Wifi, AlertTriangle } from "lucide-react";
 import { useSupervisors } from "@/hooks/use-supervisors";
 import { useWorkers } from "@/hooks/use-workers";
 import { useGateways } from "@/hooks/use-gateways";
-import { useAlertsByLevel } from "@/hooks/use-analytics";
+import { useAlertsByLevel, useSystemHealthTrends } from "@/hooks/use-analytics";
 import { useAuditLogs } from "@/hooks/use-reports";
 import { useSystemPerformance } from "@/hooks/use-system";
 import type { Supervisor, Worker, Gateway } from "@/lib/types";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface AuditLog { id: string; event: string; detail: string; status: string; timestamp: string; }
 interface Performance { cpu_percent: number; memory: { percent: number }; disk: { percent: number }; }
+interface HealthTrend { timestamp: string; cpu: number; memory: number; disk: number; }
 
 export default function AdminDashboard() {
   const { data: supsRaw }    = useSupervisors();
@@ -20,6 +21,7 @@ export default function AdminDashboard() {
   const { data: byLevelRaw } = useAlertsByLevel();
   const { data: auditRaw }   = useAuditLogs({ limit: '5' });
   const { data: perfRaw }    = useSystemPerformance();
+  const { data: healthRaw }  = useSystemHealthTrends();
 
   const supList    = (supsRaw as Supervisor[] | undefined) ?? [];
   const workerList = (workersRaw as Worker[] | undefined) ?? [];
@@ -28,6 +30,12 @@ export default function AdminDashboard() {
   const auditData  = auditRaw as { logs?: AuditLog[] } | AuditLog[] | undefined;
   const auditLogs  = Array.isArray(auditData) ? auditData : (auditData as { logs?: AuditLog[] } | undefined)?.logs ?? [];
   const performance = perfRaw as Performance | undefined;
+  const healthTrends = ((healthRaw as HealthTrend[] | undefined) ?? []).map((h) => ({
+    name: new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    cpu: h.cpu,
+    memory: h.memory,
+    disk: h.disk,
+  }));
 
   const criticalCount = lv.find(x => x.level === 'critical')?.count ?? 0;
   const alertsToday   = lv.reduce((acc, x) => acc + x.count, 0);
@@ -94,9 +102,24 @@ export default function AdminDashboard() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-2">System Health (24h)</h3>
-          <p className="text-xs text-foreground-tertiary mb-4">Endpoint not yet implemented — add <code className="bg-background px-1 rounded">GET /analytics/system-health-trends</code></p>
-          <div className="h-[300px] flex items-center justify-center text-foreground-tertiary text-sm">Awaiting backend implementation</div>
+          <h3 className="text-lg font-semibold text-foreground mb-4">System Health (24h)</h3>
+          {healthTrends.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={healthTrends}>
+                <XAxis dataKey="name" stroke="var(--axis-stroke)" />
+                <YAxis stroke="var(--axis-stroke)" domain={[0, 100]} />
+                <Tooltip contentStyle={{ backgroundColor: "var(--background-secondary)", border: "1px solid var(--border)", borderRadius: "8px" }} labelStyle={{ color: "var(--foreground)" }} />
+                <Legend />
+                <Line type="monotone" dataKey="cpu" stroke="#f97316" strokeWidth={2} name="CPU %" dot={false} />
+                <Line type="monotone" dataKey="memory" stroke="#0ea5e9" strokeWidth={2} name="Memory %" dot={false} />
+                <Line type="monotone" dataKey="disk" stroke="#10b981" strokeWidth={2} name="Disk %" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-foreground-tertiary text-sm">
+              Health trend data will appear after system performance is sampled
+            </div>
+          )}
         </div>
 
         <div className="bg-background-secondary border border-border rounded-lg p-6">

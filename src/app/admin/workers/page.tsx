@@ -198,6 +198,14 @@ export default function WorkersPage() {
           <h3 className="text-lg font-semibold text-foreground mb-4">Workers List</h3>
           {isLoading ? (
             <p className="text-foreground-secondary text-sm">Loading workers...</p>
+          ) : workerList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+                <HardHat className="w-8 h-8 text-primary" />
+              </div>
+              <p className="text-foreground-secondary font-medium">No workers yet</p>
+              <p className="text-foreground-tertiary text-sm mt-1">Workers will appear here once they are added</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">

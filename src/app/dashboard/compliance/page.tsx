@@ -1,22 +1,21 @@
 'use client';
 
 import { useCompliance, useComplianceWeeklyTrend } from '@/hooks/use-analytics';
-import { useHelmets } from '@/hooks/use-helmets';
+import { useHelmetsWithReadings } from '@/hooks/use-helmets';
 import type { Helmet } from '@/lib/types';
 import { CheckCircle, AlertTriangle, TrendingUp, Target } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ComplianceData {
   compliance_rate_pct: number;
-  helmet_worn_count?: number;
-  total_active_helmets?: number;
-  non_compliant_count?: number;
+  helmet_worn?: number;
+  total_readings?: number;
 }
 
 export default function ComplianceReports() {
   const { data: compRaw, isLoading: compLoading }   = useCompliance();
   const { data: trendRaw }                           = useComplianceWeeklyTrend();
-  const { data: helmetsRaw, isLoading: helmLoading } = useHelmets();
+  const { data: helmetsRaw, isLoading: helmLoading } = useHelmetsWithReadings();
 
   const comp       = compRaw as ComplianceData | undefined;
   const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
@@ -39,9 +38,9 @@ export default function ComplianceReports() {
   const trend = arr.map((d: { week: string; compliance_rate: number }) => ({ name: d.week, value: Math.round(d.compliance_rate) }));
 
   const complianceRate  = Math.round(comp?.compliance_rate_pct ?? 0);
-  const wornCount       = comp?.helmet_worn_count ?? helmetList.filter(h => h.helmet_wear).length;
-  const totalCount      = comp?.total_active_helmets ?? helmetList.length;
-  const nonCompliant    = comp?.non_compliant_count ?? helmetList.filter(h => !h.helmet_wear).length;
+  const wornCount       = comp?.helmet_worn ?? helmetList.filter(h => h.helmet_wear).length;
+  const totalCount      = comp?.total_readings ?? helmetList.length;
+  const nonCompliant    = Math.max(0, totalCount - wornCount);
   const avgTrend        = trend.length > 0 ? Math.round(trend.reduce((s, d) => s + d.value, 0) / trend.length) : complianceRate;
   const targetGap       = Math.max(0, 95 - complianceRate);
   const nonCompliantHelmets = helmetList.filter(h => !h.helmet_wear);

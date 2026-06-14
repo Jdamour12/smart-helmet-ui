@@ -93,7 +93,13 @@ export default function NetworkStatus() {
       <div className="bg-background-secondary border border-border rounded-lg p-6 overflow-x-auto">
         <h3 className="text-lg font-semibold text-foreground mb-4">Gateway Details</h3>
         {gwList.length === 0 ? (
-          <p className="text-sm text-foreground-secondary">No gateways registered.</p>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+              <RadioTower className="w-8 h-8 text-primary" />
+            </div>
+            <p className="text-foreground-secondary font-medium">No gateways registered</p>
+            <p className="text-foreground-tertiary text-sm mt-1">Register gateways in the admin portal to see network data</p>
+          </div>
         ) : (
           <table className="w-full">
             <thead>
@@ -120,7 +126,7 @@ export default function NetworkStatus() {
                   </td>
                   <td className="px-4 py-3 text-foreground text-sm">{gw.connected_helmets} devices</td>
                   <td className="px-4 py-3 text-foreground text-sm">{gw.signal_strength} dBm</td>
-                  <td className="px-4 py-3 text-foreground text-sm">{new Date(gw.last_heartbeat).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-foreground text-sm">{gw.last_heartbeat ? new Date(gw.last_heartbeat).toLocaleString() : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -166,7 +172,13 @@ export default function NetworkStatus() {
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Device Distribution</h3>
           {gwList.length === 0 ? (
-            <p className="text-sm text-foreground-secondary">No gateways registered.</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-3">
+                <Wifi className="w-7 h-7 text-primary" />
+              </div>
+              <p className="text-foreground-secondary text-sm font-medium">No device data</p>
+              <p className="text-foreground-tertiary text-sm mt-1">Gateway device counts will appear here</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {gwList.map((gw) => (

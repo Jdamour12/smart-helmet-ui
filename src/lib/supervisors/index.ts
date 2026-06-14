@@ -1,44 +1,66 @@
 import { http } from '@/lib/http';
 import type { Supervisor, Worker, Gateway } from '@/lib/types';
+import { mapWorker } from '@/lib/workers';
+import { mapGateway } from '@/lib/gateways';
 
-export function list() {
-  return http<Supervisor[]>('/supervisors');
+function mapSupervisor(raw: any): Supervisor {
+  return {
+    id: raw.id,
+    name: raw.full_name ?? raw.name ?? '',
+    email: raw.email ?? raw.user?.email ?? '',
+    department: raw.department ?? '',
+    location: raw.location,
+    phone: raw.phone,
+    status: (raw.status ?? (raw.is_active ? 'active' : 'inactive')) as 'active' | 'inactive',
+    worker_count: raw.worker_count ?? 0,
+    gateway_count: raw.gateway_count ?? 0,
+    created_at: raw.created_at,
+    last_active: raw.last_active ?? raw.updated_at,
+  };
 }
 
-export function get(id: string) {
-  return http<Supervisor>(`/supervisors/${id}`);
+export async function list(): Promise<Supervisor[]> {
+  const raw = await http<any[]>('/supervisors');
+  return raw.map(mapSupervisor);
+}
+
+export async function get(id: string): Promise<Supervisor> {
+  const raw = await http<any>(`/supervisors/${id}`);
+  return mapSupervisor(raw);
 }
 
 export function create(data: Partial<Supervisor>) {
-  return http<Supervisor>('/supervisors', {
+  return http<any>('/supervisors', {
     method: 'POST',
     body: JSON.stringify({
       full_name: data.name,
       email: data.email,
       phone: data.phone,
     }),
-  });
+  }).then(mapSupervisor);
 }
 
 export function update(id: string, data: Partial<Supervisor>) {
-  return http<Supervisor>(`/supervisors/${id}`, {
+  return http<any>(`/supervisors/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({
       full_name: data.name,
       phone: data.phone,
       is_active: data.status !== undefined ? data.status === 'active' : undefined,
     }),
-  });
+  }).then(mapSupervisor);
 }
 
 export function remove(id: string) {
   return http(`/supervisors/${id}`, { method: 'DELETE' });
 }
 
-export function workers(id: string) {
-  return http<Worker[]>(`/supervisors/${id}/workers`);
+export async function workers(id: string): Promise<Worker[]> {
+  const raw = await http<any[]>(`/supervisors/${id}/workers`);
+  return raw.map(mapWorker);
 }
 
-export function gateways(id: string) {
-  return http<Gateway[]>(`/supervisors/${id}/gateways`);
+export async function gateways(id: string): Promise<Gateway[]> {
+  const raw = await http<any[]>(`/supervisors/${id}/gateways`);
+  return raw.map(mapGateway);
 }

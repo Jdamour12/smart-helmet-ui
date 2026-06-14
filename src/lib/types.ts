@@ -46,8 +46,19 @@ export interface SensorReading {
   accelerometer_x?: number;
   accelerometer_y?: number;
   accelerometer_z?: number;
+  gyro_x?: number;
+  gyro_y?: number;
+  gyro_z?: number;
+  ir_value?: number;
   battery_level?: number;
   signal_strength?: number;
+  step_count?: number;
+  heading_deg?: number;
+  est_zone?: string;
+  ai_prediction?: string;
+  ai_confidence?: number;
+  ai_danger_votes?: number;
+  ai_model_votes?: Record<string, string>;
   recorded_at: string;
 }
 

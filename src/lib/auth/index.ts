@@ -49,15 +49,16 @@ export function forgotPassword(email: string) {
   });
 }
 
-export function resetPassword(token: string, password: string) {
+export function resetPassword(token: string, newPassword: string) {
   return http('/auth/reset-password', {
     method: 'POST',
-    body: JSON.stringify({ token, password }),
+    body: JSON.stringify({ token, new_password: newPassword }),
   });
 }
 
-export function uploadAvatar(file: File) {
+export async function uploadAvatar(file: File) {
   const form = new FormData();
   form.append('file', file);
-  return httpUpload<{ avatar_url: string }>('/auth/me/avatar', form);
+  const raw = await httpUpload<any>('/auth/me/avatar', form);
+  return { avatar_url: raw.avatar_url ?? '' };
 }

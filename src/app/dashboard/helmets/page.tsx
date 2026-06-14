@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useHelmets, useCreateHelmet, useUpdateHelmet, useDeleteHelmet } from '@/hooks/use-helmets';
+import { useHelmetsWithReadings, useCreateHelmet, useUpdateHelmet, useDeleteHelmet } from '@/hooks/use-helmets';
 import { useCreateWorker } from '@/hooks/use-workers';
 import { useGateways } from '@/hooks/use-gateways';
 import { useDepartments } from '@/hooks/use-departments';
@@ -111,12 +111,14 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helme
   const gateway = gateways.find(gw => gw.id === helmet.gateway_id);
   const gatewayLabel = gateway ? (gateway.name || gateway.location) : helmet.gateway_id;
 
-  const co   = live?.co_ppm    ?? helmet.co   ?? 0;
-  const ch4  = live?.gas_level ?? helmet.ch4  ?? 0;
-  const temp = live?.temperature ?? helmet.temperature ?? 0;
-  const hum  = live?.humidity    ?? helmet.humidity    ?? 0;
+  const co   = live?.co_ppm         ?? helmet.co   ?? 0;
+  const ch4  = live?.ch4_percent    ?? helmet.ch4  ?? 0;
+  const temp = live?.temperature    ?? helmet.temperature ?? 0;
+  const hum  = live?.humidity       ?? helmet.humidity    ?? 0;
   const worn   = live?.helmet_worn         ?? helmet.helmet_wear;
   const impact = live?.vibration_detected  ?? helmet.impact_detected;
+  const battery = live?.battery_level     ?? helmet.battery ?? 0;
+  const signal  = live?.signal_strength     ?? helmet.signal_strength ?? 0;
   const lastTs = live?.recorded_at         ?? helmet.last_update;
 
   const initials = (helmet.worker_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -139,6 +141,19 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helme
                     {helmet.status === 'active' ? 'Active' : helmet.status === 'alarm' ? 'Alarm' : 'Inactive'}
                   </span>
                   {live && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-success/15 text-success animate-pulse">● Live</span>}
+                  {live?.ai_prediction && (
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                      live.ai_prediction === 'danger' ? 'bg-critical/15 text-critical'
+                        : live.ai_prediction === 'safe' ? 'bg-success/15 text-success'
+                          : 'bg-foreground-tertiary/10 text-foreground-tertiary'
+                    }`}>
+                      AI: {live.ai_prediction === 'danger'
+                        ? `DANGER (${live.ai_danger_votes ?? 0}/4)`
+                        : live.ai_prediction === 'safe'
+                          ? `Safe (${(live.ai_confidence ?? 0).toFixed(1)}%)`
+                          : 'Loading...'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -221,16 +236,16 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helme
               <div className="p-5 rounded-2xl border border-border bg-background">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2"><Battery className="w-4 h-4 text-foreground-secondary" /><span className="text-sm font-semibold text-foreground">Battery Level</span></div>
-                  <span className={`text-lg font-bold ${(helmet.battery ?? 0) > 60 ? 'text-success' : (helmet.battery ?? 0) > 30 ? 'text-warning' : 'text-critical'}`}>{helmet.battery ?? 0}%</span>
+                  <span className={`text-lg font-bold ${battery > 60 ? 'text-success' : battery > 30 ? 'text-warning' : 'text-critical'}`}>{battery}%</span>
                 </div>
                 <div className="h-2.5 bg-background-tertiary rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${(helmet.battery ?? 0) > 60 ? 'bg-success' : (helmet.battery ?? 0) > 30 ? 'bg-warning' : 'bg-critical'}`} style={{ width: `${helmet.battery ?? 0}%` }} />
+                  <div className={`h-full rounded-full transition-all ${battery > 60 ? 'bg-success' : battery > 30 ? 'bg-warning' : 'bg-critical'}`} style={{ width: `${battery}%` }} />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-4 rounded-2xl border border-border bg-background">
                   <Wifi className="w-4 h-4 text-foreground-secondary mb-2" />
-                  <p className="text-sm font-bold text-foreground">{helmet.signal_strength} dBm</p>
+                  <p className="text-sm font-bold text-foreground">{signal} dBm</p>
                   <p className="text-xs text-foreground-tertiary mt-0.5">Signal</p>
                 </div>
                 <div className="p-4 rounded-2xl border border-border bg-background">
@@ -331,7 +346,7 @@ export default function HelmetMonitoring() {
   const [viewHelmet, setViewHelmet]       = useState<Helmet | null>(null);
   const [editHelmet, setEditHelmet]       = useState<Helmet | null>(null);
 
-  const { data: helmetsRaw, isLoading } = useHelmets();
+  const { data: helmetsRaw, isLoading } = useHelmetsWithReadings();
   const { data: gwRaw }                 = useGateways();
   const { mutate: deleteHelmet }        = useDeleteHelmet();
 
@@ -339,7 +354,7 @@ export default function HelmetMonitoring() {
   const gwList     = (gwRaw as Gateway[] | undefined) ?? [];
 
   const activeCount   = helmetList.filter(h => h.status === 'active').length;
-  const criticalCount = helmetList.filter(h => h.status === 'alarm').length;
+  const criticalCount = helmetList.filter(h => h.status === 'alarm' || h.status === 'critical' || h.status === 'warning').length;
   const avgBattery    = helmetList.length ? (helmetList.reduce((s, h) => s + (h.battery ?? 0), 0) / helmetList.length).toFixed(1) : '0';
   const wearingCount  = helmetList.filter(h => h.helmet_wear).length;
 
@@ -378,7 +393,17 @@ export default function HelmetMonitoring() {
 
         <div className="bg-background-secondary border border-border rounded-lg p-6 overflow-x-auto">
           <h3 className="text-lg font-semibold text-foreground mb-4">Helmet Details</h3>
-          {isLoading ? <p className="text-foreground-secondary text-sm">Loading helmets...</p> : (
+          {isLoading ? (
+            <p className="text-foreground-secondary text-sm">Loading helmets...</p>
+          ) : helmetList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+                <Radio className="w-8 h-8 text-primary" />
+              </div>
+              <p className="text-foreground-secondary font-medium">No helmets yet</p>
+              <p className="text-foreground-tertiary text-sm mt-1">Assign helmets to workers to see monitoring data</p>
+            </div>
+          ) : (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">

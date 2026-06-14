@@ -1,7 +1,7 @@
 'use client';
 
 import { useEnvironment } from '@/hooks/use-analytics';
-import { useHelmets } from '@/hooks/use-helmets';
+import { useHelmetsWithReadings } from '@/hooks/use-helmets';
 import type { Helmet } from '@/lib/types';
 import { Thermometer, Droplets, Gauge, AlertTriangle } from 'lucide-react';
 
@@ -12,7 +12,7 @@ interface EnvData {
 
 export default function EnvironmentAnalytics() {
   const { data: envRaw, isLoading: envLoading }         = useEnvironment();
-  const { data: helmetsRaw, isLoading: helmetsLoading } = useHelmets();
+  const { data: helmetsRaw, isLoading: helmetsLoading } = useHelmetsWithReadings();
 
   const envData    = envRaw as EnvData | undefined;
   const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
@@ -132,7 +132,13 @@ export default function EnvironmentAnalytics() {
       <div className="bg-background-secondary border border-border rounded-lg p-6 overflow-x-auto">
         <h3 className="text-lg font-semibold text-foreground mb-4">Environmental Data by Worker</h3>
         {helmetList.length === 0 ? (
-          <p className="text-sm text-foreground-secondary">No helmet data available.</p>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 bg-info/10 rounded-2xl flex items-center justify-center mb-4">
+              <Thermometer className="w-8 h-8 text-info" />
+            </div>
+            <p className="text-foreground-secondary font-medium">No environmental data yet</p>
+            <p className="text-foreground-tertiary text-sm mt-1">Temperature and humidity readings will appear once helmets are active</p>
+          </div>
         ) : (
           <table className="w-full">
             <thead>

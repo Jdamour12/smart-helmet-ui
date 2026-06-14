@@ -11,6 +11,14 @@ export function useHelmets(params?: Record<string, string>) {
   });
 }
 
+export function useHelmetsWithReadings(params?: Record<string, string>) {
+  return useQuery({
+    queryKey: ['helmets', 'with-readings', params],
+    queryFn: () => helmetsApi.listWithReadings(params),
+    refetchInterval: 15 * 1000,
+  });
+}
+
 export function useHelmet(id: string) {
   return useQuery({
     queryKey: ['helmets', id],
@@ -32,7 +40,9 @@ export function useCreateHelmet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<Helmet>) => helmetsApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['helmets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['helmets'] });
+    },
   });
 }
 
@@ -40,7 +50,9 @@ export function useUpdateHelmet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Helmet> }) => helmetsApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['helmets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['helmets'] });
+    },
   });
 }
 
@@ -48,7 +60,9 @@ export function useDeleteHelmet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => helmetsApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['helmets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['helmets'] });
+    },
   });
 }
 

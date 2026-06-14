@@ -478,6 +478,14 @@ export default function GatewaysPage() {
           <h3 className="text-lg font-semibold text-foreground mb-4">Gateways List</h3>
           {isLoading ? (
             <p className="text-foreground-secondary text-sm">Loading gateways...</p>
+          ) : gwList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+                <Wifi className="w-8 h-8 text-primary" />
+              </div>
+              <p className="text-foreground-secondary font-medium">No gateways yet</p>
+              <p className="text-foreground-tertiary text-sm mt-1">Register gateways to start collecting helmet data</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">

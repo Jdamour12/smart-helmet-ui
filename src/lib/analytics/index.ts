@@ -25,7 +25,10 @@ export function compliance() {
 }
 
 export function complianceWeeklyTrend() {
-  return http('/analytics/compliance/weekly-trend');
+  return compliance().then((c: any) => [{
+    week: 'Current',
+    compliance_rate: c.compliance_rate_pct ?? 0,
+  }]);
 }
 
 export function impacts() {
@@ -33,7 +36,10 @@ export function impacts() {
 }
 
 export function impactsWeeklyTrend() {
-  return http('/analytics/impacts/weekly-trend');
+  return impacts().then((i: any) => [{
+    day: 'Total',
+    count: i.total_vibration_events ?? 0,
+  }]);
 }
 
 export function environment() {

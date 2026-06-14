@@ -1,7 +1,7 @@
 'use client';
 
 import { useImpacts, useImpactsWeeklyTrend } from '@/hooks/use-analytics';
-import { useHelmets } from '@/hooks/use-helmets';
+import { useHelmetsWithReadings } from '@/hooks/use-helmets';
 import type { Helmet } from '@/lib/types';
 import { AlertTriangle, Shield, TrendingDown, Heart } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -16,7 +16,7 @@ interface ImpactData {
 export default function ImpactDetection() {
   const { data: impactRaw, isLoading: impactLoading } = useImpacts();
   const { data: trendRaw }                             = useImpactsWeeklyTrend();
-  const { data: helmetsRaw, isLoading: helmLoading }  = useHelmets();
+  const { data: helmetsRaw, isLoading: helmLoading }  = useHelmetsWithReadings();
 
   const impactData = impactRaw as ImpactData | undefined;
   const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];

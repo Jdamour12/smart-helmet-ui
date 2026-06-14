@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, AlertCircle } from 'lucide-react';
+import { Download, AlertCircle, FileText } from 'lucide-react';
 import { useAuditLogs, useExportReport } from '@/hooks/use-reports';
 import type { AuditLog } from '@/lib/types';
 
@@ -61,7 +61,13 @@ export default function ReportsPage() {
         {isLoading ? (
           <p className="text-sm text-foreground-secondary py-8 text-center">Loading...</p>
         ) : logs.length === 0 ? (
-          <p className="text-sm text-foreground-secondary py-8 text-center">No audit logs available.</p>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 bg-info/10 rounded-2xl flex items-center justify-center mb-4">
+              <FileText className="w-8 h-8 text-info" />
+            </div>
+            <p className="text-foreground-secondary font-medium">No audit logs yet</p>
+            <p className="text-foreground-tertiary text-sm mt-1">Audit log entries will appear as users take actions</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

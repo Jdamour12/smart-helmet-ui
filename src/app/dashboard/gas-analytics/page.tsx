@@ -1,7 +1,7 @@
 'use client';
 
 import { useGasLevels } from '@/hooks/use-analytics';
-import { useHelmets } from '@/hooks/use-helmets';
+import { useHelmetsWithReadings } from '@/hooks/use-helmets';
 import type { Helmet } from '@/lib/types';
 import { Zap, TrendingDown, AlertTriangle, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -15,7 +15,7 @@ interface GasData {
 
 export default function GasAnalytics() {
   const { data: gasRaw, isLoading: gasLoading } = useGasLevels();
-  const { data: helmetsRaw, isLoading: helmetsLoading } = useHelmets();
+  const { data: helmetsRaw, isLoading: helmetsLoading } = useHelmetsWithReadings();
 
   const gasData    = gasRaw as GasData | undefined;
   const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
@@ -125,7 +125,13 @@ export default function GasAnalytics() {
       <div className="bg-background-secondary border border-border rounded-lg p-6 overflow-x-auto">
         <h3 className="text-lg font-semibold text-foreground mb-4">Gas Levels by Helmet</h3>
         {helmetList.length === 0 ? (
-          <p className="text-sm text-foreground-secondary">No helmet data available.</p>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 bg-warning/10 rounded-2xl flex items-center justify-center mb-4">
+              <AlertTriangle className="w-8 h-8 text-warning" />
+            </div>
+            <p className="text-foreground-secondary font-medium">No gas sensor data yet</p>
+            <p className="text-foreground-tertiary text-sm mt-1">Gas level readings will appear once helmets are active</p>
+          </div>
         ) : (
           <table className="w-full">
             <thead>
