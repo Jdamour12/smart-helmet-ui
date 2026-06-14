@@ -34,7 +34,7 @@ export function AdminHeader({ onMenuClick }: { onMenuClick: () => void }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-background-secondary border-b border-border px-5 py-4.5 flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-background-secondary border-b border-border px-5 py-5.5 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuClick}

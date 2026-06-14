@@ -44,11 +44,9 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
           <Menu className="w-5 h-5 text-foreground" />
         </button>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
           <h1 className="text-xl font-semibold text-foreground hidden sm:block">
             Smart Helmet Dashboard
           </h1>
-        </div>
         </div>
       </div>
 
