@@ -31,7 +31,6 @@ export interface Helmet {
   impact_detected: boolean;
   battery: number;
   signal_strength: number;
-  gateway_id: string;
   last_update: string;
   step_count?: number;
   heading_deg?: number;
@@ -100,7 +99,6 @@ export interface Worker {
   phone?: string;
   status: 'active' | 'inactive';
   supervisor_id?: string;
-  gateway_id?: string;
 }
 
 export interface Supervisor {
@@ -112,7 +110,6 @@ export interface Supervisor {
   phone?: string;
   status: 'active' | 'inactive';
   worker_count?: number;
-  gateway_count?: number;
   created_at?: string;
   last_active?: string;
 }
@@ -127,17 +124,6 @@ export interface Department {
   worker_count?: number;
   created_at?: string;
   updated_at?: string;
-}
-
-export interface Gateway {
-  id: string;
-  name?: string;
-  location: string;
-  status: 'online' | 'offline';
-  connected_helmets: number;
-  signal_strength: number;
-  last_heartbeat: string;
-  ip_address?: string;
 }
 
 export interface Alert {
@@ -171,8 +157,6 @@ export interface SystemStats {
   criticalAlerts: number;
   avgGasLevel: number;
   complianceRate: number;
-  gatewaysOnline?: number;
-  gatewaysTotal?: number;
   warningAlerts?: number;
 }
 

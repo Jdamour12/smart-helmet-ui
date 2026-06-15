@@ -12,7 +12,6 @@ export function mapWorker(raw: any): Worker {
     phone: raw.phone,
     status: (raw.status ?? (raw.is_active ? 'active' : 'inactive')) as 'active' | 'inactive',
     supervisor_id: raw.supervisor_id,
-    gateway_id: raw.gateway_id,
   };
 }
 

@@ -17,8 +17,3 @@ export function useGenerateReport() {
   });
 }
 
-export function useExportReport() {
-  return useMutation({
-    mutationFn: (params: Record<string, string>) => reportsApi.exportReport(params),
-  });
-}

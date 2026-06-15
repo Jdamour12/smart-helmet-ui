@@ -18,7 +18,6 @@ export function mapHelmet(raw: any, latest?: any): Helmet {
     impact_detected: reading?.vibration_detected ?? raw.impact_detected ?? false,
     battery: reading?.battery_level ?? raw.battery ?? 0,
     signal_strength: reading?.signal_strength ?? raw.signal_strength ?? 0,
-    gateway_id: raw.gateway_id ?? '',
     last_update: reading?.recorded_at ?? raw.last_update ?? raw.last_seen ?? raw.updated_at ?? '',
     step_count: reading?.step_count ?? raw.step_count,
     heading_deg: reading?.heading_deg ?? raw.heading_deg,
@@ -119,7 +118,6 @@ export function create(data: Partial<Helmet> & { helmet_code?: string; worker_id
     body: JSON.stringify({
       helmet_code: data.helmet_code ?? `HLM-${Date.now().toString(36).toUpperCase().slice(-6)}`,
       zone: (data as any).zone ?? undefined,
-      gateway_id: data.gateway_id || undefined,
       worker_id: data.worker_id || undefined,
     }),
   });
@@ -129,7 +127,6 @@ export function update(id: string, data: Partial<Helmet>) {
   return http<any>(`/helmets/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({
-      gateway_id: data.gateway_id || undefined,
       worker_id: data.worker_id || undefined,
       status: data.status === 'alarm' ? 'critical'
         : data.status === 'active' ? 'active'

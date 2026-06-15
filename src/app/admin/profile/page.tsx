@@ -424,7 +424,6 @@ export default function AdminProfilePage() {
                 {[
                   { label: 'Supervisor Management', desc: 'Create, edit, deactivate supervisors' },
                   { label: 'Worker Management',     desc: 'View all worker accounts' },
-                  { label: 'Gateway Control',       desc: 'Manage all IoT gateways' },
                   { label: 'System Configuration',  desc: 'Full system settings access' },
                 ].map(({ label, desc }) => (
                   <div key={label} className="flex items-center justify-between p-3 rounded-xl bg-background border border-border">

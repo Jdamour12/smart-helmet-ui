@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, X, Mail, Phone, Briefcase, Users, HardHat, UserCheck, AlertCircle, Wifi } from 'lucide-react';
+import { Eye, X, Mail, Phone, Briefcase, Users, HardHat, UserCheck, AlertCircle } from 'lucide-react';
 import { useWorkers } from '@/hooks/use-workers';
-import { useGateways } from '@/hooks/use-gateways';
 import { useHelmets } from '@/hooks/use-helmets';
-import type { Worker, Gateway, Helmet } from '@/lib/types';
+import type { Worker, Helmet } from '@/lib/types';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -18,7 +17,7 @@ function Overlay({ onClick }: { onClick: () => void }) {
 }
 
 /* ─── View Worker Drawer ──────────────────────────────────── */
-function ViewWorkerDrawer({ worker, gateways, onClose }: { worker: Worker | null; gateways: Gateway[]; onClose: () => void }) {
+function ViewWorkerDrawer({ worker, onClose }: { worker: Worker | null; onClose: () => void }) {
   if (!worker) return null;
 
   const initials = (worker.name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -116,22 +115,6 @@ function ViewWorkerDrawer({ worker, gateways, onClose }: { worker: Worker | null
                 </div>
               </div>
             )}
-
-            {worker.gateway_id && (() => {
-              const gw = gateways.find(g => g.id === worker.gateway_id);
-              const gwLabel = gw ? (gw.name || gw.location) : worker.gateway_id;
-              return (
-                <div className="mt-3 flex items-center gap-4 p-4 rounded-2xl border border-border bg-background">
-                  <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Wifi className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-foreground-tertiary font-medium">Gateway</p>
-                    <p className="text-sm font-semibold text-foreground mt-0.5">{gwLabel}</p>
-                  </div>
-                </div>
-              );
-            })()}
           </section>
         </div>
 
@@ -151,11 +134,9 @@ function ViewWorkerDrawer({ worker, gateways, onClose }: { worker: Worker | null
 /* ─── Main Page ───────────────────────────────────────────── */
 export default function WorkersPage() {
   const [viewWorker, setViewWorker] = useState<Worker | null>(null);
-  const { data: workersRaw, isLoading } = useWorkers();
-  const { data: gatewaysRaw } = useGateways();
+  const { data: workersRaw, isLoading, isError, error } = useWorkers();
   const { data: helmetsRaw }  = useHelmets();
   const workerList  = (workersRaw  as Worker[]  | undefined) ?? [];
-  const gatewayList = (gatewaysRaw as Gateway[] | undefined) ?? [];
   const helmetList  = (helmetsRaw  as Helmet[]  | undefined) ?? [];
 
   const activeCount   = workerList.filter(w => w.status === 'active').length;
@@ -198,6 +179,14 @@ export default function WorkersPage() {
           <h3 className="text-lg font-semibold text-foreground mb-4">Workers List</h3>
           {isLoading ? (
             <p className="text-foreground-secondary text-sm">Loading workers...</p>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 bg-critical/10 rounded-2xl flex items-center justify-center mb-4">
+                <AlertCircle className="w-8 h-8 text-critical" />
+              </div>
+              <p className="text-foreground-secondary font-medium">Failed to load workers</p>
+              <p className="text-foreground-tertiary text-sm mt-1">{(error as Error)?.message ?? 'Please try again'}</p>
+            </div>
           ) : workerList.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
@@ -242,7 +231,7 @@ export default function WorkersPage() {
         </div>
       </div>
 
-      <ViewWorkerDrawer worker={viewWorker} gateways={gatewayList} onClose={() => setViewWorker(null)} />
+      <ViewWorkerDrawer worker={viewWorker} onClose={() => setViewWorker(null)} />
     </>
   );
 }

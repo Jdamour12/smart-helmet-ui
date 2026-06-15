@@ -1,4 +1,4 @@
-import { Helmet, Alert, Gateway, SystemStats } from './types';
+import { Helmet, Alert, SystemStats } from './types';
 
 export const mockHelmets: Helmet[] = [
   {
@@ -14,7 +14,6 @@ export const mockHelmets: Helmet[] = [
     impact_detected: false,
     battery: 92,
     signal_strength: -45,
-    gateway_id: 'GW-001',
     last_update: new Date(Date.now() - 5000).toISOString(),
   },
   {
@@ -30,7 +29,6 @@ export const mockHelmets: Helmet[] = [
     impact_detected: false,
     battery: 87,
     signal_strength: -52,
-    gateway_id: 'GW-001',
     last_update: new Date(Date.now() - 3000).toISOString(),
   },
   {
@@ -46,7 +44,6 @@ export const mockHelmets: Helmet[] = [
     impact_detected: true,
     battery: 65,
     signal_strength: -68,
-    gateway_id: 'GW-002',
     last_update: new Date(Date.now() - 1000).toISOString(),
   },
   {
@@ -62,7 +59,6 @@ export const mockHelmets: Helmet[] = [
     impact_detected: false,
     battery: 94,
     signal_strength: -40,
-    gateway_id: 'GW-001',
     last_update: new Date(Date.now() - 4000).toISOString(),
   },
   {
@@ -78,7 +74,6 @@ export const mockHelmets: Helmet[] = [
     impact_detected: false,
     battery: 78,
     signal_strength: -55,
-    gateway_id: 'GW-002',
     last_update: new Date(Date.now() - 2000).toISOString(),
   },
   {
@@ -94,7 +89,6 @@ export const mockHelmets: Helmet[] = [
     impact_detected: false,
     battery: 20,
     signal_strength: -85,
-    gateway_id: 'GW-003',
     last_update: new Date(Date.now() - 300000).toISOString(),
   },
 ];
@@ -149,33 +143,6 @@ export const mockAlerts: Alert[] = [
     message: 'Battery level below 80%',
     timestamp: new Date(Date.now() - 60000).toISOString(),
     resolved: false,
-  },
-];
-
-export const mockGateways: Gateway[] = [
-  {
-    id: 'GW-001',
-    location: 'North Shaft',
-    status: 'online',
-    connected_helmets: 3,
-    signal_strength: 95,
-    last_heartbeat: new Date(Date.now() - 2000).toISOString(),
-  },
-  {
-    id: 'GW-002',
-    location: 'South Shaft',
-    status: 'online',
-    connected_helmets: 2,
-    signal_strength: 88,
-    last_heartbeat: new Date(Date.now() - 3000).toISOString(),
-  },
-  {
-    id: 'GW-003',
-    location: 'East Tunnel',
-    status: 'offline',
-    connected_helmets: 1,
-    signal_strength: 0,
-    last_heartbeat: new Date(Date.now() - 180000).toISOString(),
   },
 ];
 
@@ -501,8 +468,6 @@ export const adminSystemStats = {
   activeSupervisors: 3,
   totalWorkers: 25,
   activeWorkers: 22,
-  totalGateways: 3,
-  onlineGateways: 2,
   systemHealth: 96,
   alertsToday: 15,
   criticalAlerts: 2,

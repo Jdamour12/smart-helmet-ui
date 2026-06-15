@@ -1,7 +1,6 @@
 import { http } from '@/lib/http';
-import type { Supervisor, Worker, Gateway } from '@/lib/types';
+import type { Supervisor, Worker } from '@/lib/types';
 import { mapWorker } from '@/lib/workers';
-import { mapGateway } from '@/lib/gateways';
 
 function mapSupervisor(raw: any): Supervisor {
   return {
@@ -13,7 +12,6 @@ function mapSupervisor(raw: any): Supervisor {
     phone: raw.phone,
     status: (raw.status ?? (raw.is_active ? 'active' : 'inactive')) as 'active' | 'inactive',
     worker_count: raw.worker_count ?? 0,
-    gateway_count: raw.gateway_count ?? 0,
     created_at: raw.created_at,
     last_active: raw.last_active ?? raw.updated_at,
   };
@@ -58,9 +56,4 @@ export function remove(id: string) {
 export async function workers(id: string): Promise<Worker[]> {
   const raw = await http<any[]>(`/supervisors/${id}/workers`);
   return raw.map(mapWorker);
-}
-
-export async function gateways(id: string): Promise<Gateway[]> {
-  const raw = await http<any[]>(`/supervisors/${id}/gateways`);
-  return raw.map(mapGateway);
 }

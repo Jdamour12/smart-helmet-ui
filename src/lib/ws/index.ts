@@ -7,7 +7,3 @@ export function helmetUrl(helmetId: string) {
 export function alertsUrl() {
   return `${WS_BASE}/alerts`;
 }
-
-export function gatewaysUrl() {
-  return `${WS_BASE}/gateways`;
-}

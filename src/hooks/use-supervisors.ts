@@ -27,14 +27,6 @@ export function useSupervisorWorkers(id: string) {
   });
 }
 
-export function useSupervisorGateways(id: string) {
-  return useQuery({
-    queryKey: ['supervisors', id, 'gateways'],
-    queryFn: () => supervisorsApi.gateways(id),
-    enabled: !!id,
-  });
-}
-
 export function useCreateSupervisor() {
   const qc = useQueryClient();
   return useMutation({

@@ -1,92 +1,138 @@
 'use client';
 
-import { gasLevelData, mockHelmets } from '@/lib/mock-data';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { useGasLevels } from '@/hooks/use-analytics';
+import { useHelmetsWithReadings } from '@/hooks/use-helmets';
+import type { Helmet } from '@/lib/types';
+import { Zap, TrendingDown, AlertTriangle, CheckCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-const coDistribution = [
-  { range: '0-10 ppm', count: 3, percentage: 50 },
-  { range: '10-20 ppm', count: 2, percentage: 33 },
-  { range: '20-40 ppm', count: 0, percentage: 0 },
-  { range: '40+ ppm', count: 1, percentage: 17 },
-];
-
-const ch4Distribution = [
-  { range: '0-0.5%', count: 3, percentage: 50 },
-  { range: '0.5-1.0%', count: 2, percentage: 33 },
-  { range: '1.0-1.5%', count: 0, percentage: 0 },
-  { range: '1.5%+', count: 1, percentage: 17 },
-];
+interface GasData {
+  avg_co_ppm: number;
+  avg_ch4_pct?: number;
+  co_distribution: { safe: number; warning: number; critical: number };
+  ch4_distribution: { safe: number; warning: number; critical: number };
+}
 
 export default function GasAnalytics() {
-  const avgCO = mockHelmets.reduce((sum, h) => sum + h.co, 0) / mockHelmets.length;
-  const avgCH4 = mockHelmets.reduce((sum, h) => sum + h.ch4, 0) / mockHelmets.length;
+  const { data: gasRaw, isLoading: gasLoading }         = useGasLevels();
+  const { data: helmetsRaw, isLoading: helmetsLoading } = useHelmetsWithReadings();
+
+  const gasData    = gasRaw as GasData | undefined;
+  const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
+  const loading    = gasLoading || helmetsLoading;
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <p className="text-foreground-secondary">Loading...</p>
+      </div>
+    );
+  }
+
+  const coDist  = gasData?.co_distribution  ?? { safe: 0, warning: 0, critical: 0 };
+  const ch4Dist = gasData?.ch4_distribution ?? { safe: 0, warning: 0, critical: 0 };
+
+  const coChartData  = [
+    { range: 'Safe (≤50 ppm)',     count: coDist.safe },
+    { range: 'Warning (≤200 ppm)', count: coDist.warning },
+    { range: 'Critical (>200 ppm)',count: coDist.critical },
+  ];
+  const ch4ChartData = [
+    { range: 'Safe (≤1%)',    count: ch4Dist.safe },
+    { range: 'Warning (≤2%)', count: ch4Dist.warning },
+    { range: 'Critical (>2%)',count: ch4Dist.critical },
+  ];
 
   return (
     <div className="p-6 space-y-6">
       <div>
         <h2 className="text-3xl font-bold text-foreground">Gas Analytics</h2>
-        <p className="text-foreground-secondary mt-1">CO and Methane level analysis</p>
+        <p className="text-foreground-secondary mt-1">CO and Methane level analysis across all helmets</p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm">Average CO Level</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{avgCO.toFixed(1)} ppm</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-foreground-secondary text-sm font-medium">Avg CO Level</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{(gasData?.avg_co_ppm ?? 0).toFixed(1)} ppm</p>
+              <p className="text-xs text-foreground-tertiary mt-2">Current average</p>
+            </div>
+            <div className="bg-warning/10 p-3 rounded-lg"><Zap className="w-6 h-6 text-warning" /></div>
+          </div>
         </div>
+
         <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm">Average CH4 Level</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{avgCH4.toFixed(2)}%</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-foreground-secondary text-sm font-medium">Avg CH4 Level</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{(gasData?.avg_ch4_pct ?? 0).toFixed(2)}%</p>
+              <p className="text-xs text-foreground-tertiary mt-2">Current average</p>
+            </div>
+            <div className="bg-primary/10 p-3 rounded-lg"><TrendingDown className="w-6 h-6 text-primary" /></div>
+          </div>
         </div>
+
         <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm">CO Warning Threshold</p>
-          <p className="text-3xl font-bold text-warning mt-2">20 ppm</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-foreground-secondary text-sm font-medium">Safe Status</p>
+              <p className="text-3xl font-bold text-success mt-2">{coDist.safe}</p>
+              <p className="text-xs text-foreground-tertiary mt-2">Helmets in safe range</p>
+            </div>
+            <div className="bg-success/10 p-3 rounded-lg"><CheckCircle className="w-6 h-6 text-success" /></div>
+          </div>
         </div>
+
         <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm">CO Critical Threshold</p>
-          <p className="text-3xl font-bold text-critical mt-2">40 ppm</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-foreground-secondary text-sm font-medium">Warning Status</p>
+              <p className="text-3xl font-bold text-warning mt-2">{coDist.warning}</p>
+              <p className="text-xs text-foreground-tertiary mt-2">In warning range</p>
+            </div>
+            <div className="bg-warning/10 p-3 rounded-lg"><AlertTriangle className="w-6 h-6 text-warning" /></div>
+          </div>
         </div>
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* CO Distribution */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">CO Level Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={coDistribution}>
-              <XAxis dataKey="range" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                labelStyle={{ color: '#0f172a' }}
-              />
+            <BarChart data={coChartData}>
+              <XAxis dataKey="range" stroke="var(--axis-stroke)" />
+              <YAxis stroke="var(--axis-stroke)" />
+              <Tooltip contentStyle={{ backgroundColor: 'var(--background-secondary)', border: '1px solid var(--border)', borderRadius: '8px' }} labelStyle={{ color: 'var(--foreground)' }} />
               <Bar dataKey="count" fill="#ef4444" radius={[8, 8, 0, 0]} name="Helmets" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* CH4 Distribution */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">CH4 Level Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={ch4Distribution}>
-              <XAxis dataKey="range" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                labelStyle={{ color: '#0f172a' }}
-              />
+            <BarChart data={ch4ChartData}>
+              <XAxis dataKey="range" stroke="var(--axis-stroke)" />
+              <YAxis stroke="var(--axis-stroke)" />
+              <Tooltip contentStyle={{ backgroundColor: 'var(--background-secondary)', border: '1px solid var(--border)', borderRadius: '8px' }} labelStyle={{ color: 'var(--foreground)' }} />
               <Bar dataKey="count" fill="#f59e0b" radius={[8, 8, 0, 0]} name="Helmets" />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Detailed List */}
-      <div className="bg-background-secondary border border-border rounded-lg p-6">
+      <div className="bg-background-secondary border border-border rounded-lg p-6 overflow-x-auto">
         <h3 className="text-lg font-semibold text-foreground mb-4">Gas Levels by Helmet</h3>
-        <div className="overflow-x-auto">
+        {helmetList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 bg-warning/10 rounded-2xl flex items-center justify-center mb-4">
+              <AlertTriangle className="w-8 h-8 text-warning" />
+            </div>
+            <p className="text-foreground-secondary font-medium">No gas sensor data yet</p>
+            <p className="text-foreground-tertiary text-sm mt-1">Gas level readings will appear once helmets are active</p>
+          </div>
+        ) : (
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50">
@@ -97,33 +143,32 @@ export default function GasAnalytics() {
               </tr>
             </thead>
             <tbody>
-              {mockHelmets.map((helmet) => (
-                <tr key={helmet.id} className="border-b border-border/50 hover:bg-background/50">
-                  <td className="px-4 py-3 text-foreground text-sm">{helmet.worker_name}</td>
-                  <td className="px-4 py-3 text-foreground text-sm">{helmet.co} ppm</td>
-                  <td className="px-4 py-3 text-foreground text-sm">{helmet.ch4.toFixed(2)}%</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-1 rounded font-medium ${
-                        helmet.co > 40 || helmet.ch4 > 1.5
-                          ? 'bg-critical/10 text-critical'
-                          : helmet.co > 20 || helmet.ch4 > 0.8
-                          ? 'bg-warning/10 text-warning'
-                          : 'bg-success/10 text-success'
-                      }`}
-                    >
-                      {helmet.co > 40 || helmet.ch4 > 1.5
-                        ? 'Critical'
-                        : helmet.co > 20 || helmet.ch4 > 0.8
-                        ? 'Warning'
-                        : 'Safe'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {helmetList.map((h) => {
+                const status = h.co > 200 || h.ch4 > 2
+                  ? 'critical'
+                  : h.co > 50 || h.ch4 > 1
+                    ? 'warning'
+                    : 'safe';
+                return (
+                  <tr key={h.id} className="border-b border-border/50 hover:bg-background/50">
+                    <td className="px-4 py-3 text-foreground text-sm">{h.worker_name}</td>
+                    <td className="px-4 py-3 text-foreground text-sm">{(h.co ?? 0).toFixed(1)} ppm</td>
+                    <td className="px-4 py-3 text-foreground text-sm">{(h.ch4 ?? 0).toFixed(2)}%</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-1 rounded font-medium ${
+                        status === 'critical' ? 'bg-critical/10 text-critical'
+                          : status === 'warning' ? 'bg-warning/10 text-warning'
+                            : 'bg-success/10 text-success'
+                      }`}>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
     </div>
   );

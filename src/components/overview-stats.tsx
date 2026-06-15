@@ -1,4 +1,4 @@
-import { AlertTriangle, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertTriangle, Users, AlertCircle } from 'lucide-react';
 import type { SystemStatus } from '@/lib/types';
 
 interface OverviewStatsProps {
@@ -7,7 +7,7 @@ interface OverviewStatsProps {
 
 export function OverviewStats({ status }: OverviewStatsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Active Helmets */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">
         <div className="flex items-start justify-between">
@@ -16,19 +16,6 @@ export function OverviewStats({ status }: OverviewStatsProps) {
             <p className="text-2xl font-bold text-slate-900 mt-2">{status.activeHelmets}</p>
           </div>
           <Users className="w-5 h-5 text-blue-600" />
-        </div>
-      </div>
-
-      {/* Gateway Status */}
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs text-slate-600 font-semibold uppercase">Gateways Online</p>
-            <p className="text-2xl font-bold text-green-600 mt-2">
-              {status.gatewaysOnline}/{status.gatewaysTotal}
-            </p>
-          </div>
-          <CheckCircle className="w-5 h-5 text-green-600" />
         </div>
       </div>
 

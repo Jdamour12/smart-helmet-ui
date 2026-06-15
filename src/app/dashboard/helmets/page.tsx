@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useHelmetsWithReadings, useHelmets, useCreateHelmet, useUpdateHelmet, useDeleteHelmet } from '@/hooks/use-helmets';
 import { useCreateWorker } from '@/hooks/use-workers';
-import { useGateways } from '@/hooks/use-gateways';
 import { useDepartments } from '@/hooks/use-departments';
 import { useHelmetLive } from '@/hooks/use-websocket-helmets';
-import type { Helmet, Gateway, Department } from '@/lib/types';
+import type { Helmet, Department } from '@/lib/types';
 import {
   Radio, Users, AlertTriangle, Zap, Plus, Eye, Edit2, Trash2,
   X, Battery, Thermometer, Wind, Droplets,
@@ -307,16 +306,15 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
 }
 
 /* ─── Edit Worker drawer ─────────────────────────────────── */
-function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null; onClose: () => void; gateways: Gateway[] }) {
+function EditWorkerDrawer({ helmet, onClose }: { helmet: Helmet | null; onClose: () => void }) {
   const { mutate: updateHelmet } = useUpdateHelmet();
   const [form, setForm] = useState({
-    gateway_id: helmet?.gateway_id ?? '',
     status: (helmet?.status ?? 'inactive') as 'active' | 'inactive' | 'alarm',
   });
 
   useEffect(() => {
     if (helmet) {
-      setForm({ gateway_id: helmet.gateway_id, status: helmet.status as 'active' | 'inactive' | 'alarm' });
+      setForm({ status: helmet.status as 'active' | 'inactive' | 'alarm' });
     }
   }, [helmet?.id]);
 
@@ -325,7 +323,7 @@ function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateHelmet(
-      { id: helmet.id, data: { status: form.status, gateway_id: form.gateway_id } },
+      { id: helmet.id, data: { status: form.status } },
       { onSuccess: () => onClose() },
     );
   };
@@ -346,14 +344,6 @@ function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Worker Name</label>
               <input readOnly value={helmet.worker_name} className="w-full px-3 py-2.5 text-sm bg-background-tertiary border border-border rounded-lg text-foreground-secondary cursor-not-allowed" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Gateway Assignment</label>
-              <select value={form.gateway_id} onChange={e => setForm(f => ({ ...f, gateway_id: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                <option value="">No gateway</option>
-                {gateways.map(gw => <option key={gw.id} value={gw.id}>{gw.name || gw.location} — {gw.location}</option>)}
-              </select>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Status</label>
@@ -384,11 +374,9 @@ export default function HelmetMonitoring() {
   const [editHelmet, setEditHelmet]       = useState<Helmet | null>(null);
 
   const { data: helmetsRaw, isLoading } = useHelmetsWithReadings();
-  const { data: gwRaw }                 = useGateways();
   const { mutate: deleteHelmet }        = useDeleteHelmet();
 
   const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
-  const gwList     = (gwRaw as Gateway[] | undefined) ?? [];
 
   const activeCount   = helmetList.filter(h => h.status === 'active').length;
   const criticalCount = helmetList.filter(h => h.status === 'alarm').length;
@@ -498,7 +486,7 @@ export default function HelmetMonitoring() {
 
       <AddWorkerDrawer open={addWorkerOpen} onClose={() => setAddWorkerOpen(false)} />
       <ViewWorkerDrawer helmet={viewHelmet} onClose={() => setViewHelmet(null)} onEdit={h => { setViewHelmet(null); setEditHelmet(h); }} />
-      <EditWorkerDrawer helmet={editHelmet} onClose={() => setEditHelmet(null)} gateways={gwList} />
+      <EditWorkerDrawer helmet={editHelmet} onClose={() => setEditHelmet(null)} />
     </>
   );
 }

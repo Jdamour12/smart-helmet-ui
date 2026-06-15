@@ -3,14 +3,13 @@
 import { useState, useEffect } from 'react';
 import {
   Plus, Eye, Edit2, Trash2, X,
-  Mail, MapPin, Users, Wifi,
+  Mail, MapPin, Users,
   Calendar, Clock, ChevronRight, Shield, UserCheck, UserX,
 } from 'lucide-react';
 import {
   useSupervisors, useCreateSupervisor, useUpdateSupervisor, useDeleteSupervisor,
 } from '@/hooks/use-supervisors';
-import { useGateways } from '@/hooks/use-gateways';
-import type { Supervisor, Gateway } from '@/lib/types';
+import type { Supervisor } from '@/lib/types';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -212,14 +211,6 @@ function ViewSupervisorDrawer({
                 <p className="text-4xl font-bold text-foreground">{supervisor.worker_count ?? 0}</p>
                 <p className="text-xs text-foreground-tertiary mt-1">assigned workers</p>
               </div>
-              <div className="p-5 rounded-2xl border border-border bg-background">
-                <div className="flex items-center gap-2 mb-3">
-                  <Wifi className="w-4 h-4 text-foreground-secondary" />
-                  <span className="text-xs font-semibold text-foreground-secondary">Gateways</span>
-                </div>
-                <p className="text-4xl font-bold text-foreground">{supervisor.gateway_count ?? 0}</p>
-                <p className="text-xs text-foreground-tertiary mt-1">assigned gateways</p>
-              </div>
             </div>
           </section>
 
@@ -272,13 +263,10 @@ function ViewSupervisorDrawer({
 /* ─── Edit Supervisor Drawer ──────────────────────────────── */
 function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor | null; onClose: () => void }) {
   const { mutate: updateSupervisor, isPending } = useUpdateSupervisor();
-  const { data: gatewaysRaw } = useGateways();
-  const gatewayList = (gatewaysRaw as Gateway[] | undefined) ?? [];
   const [form, setForm] = useState({
     name:     '',
     email:    '',
     location: '',
-    gateways: '',
     status:   'active' as 'active' | 'inactive',
   });
 
@@ -288,7 +276,6 @@ function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor 
         name:     supervisor.name ?? '',
         email:    supervisor.email ?? '',
         location: supervisor.location ?? supervisor.department ?? '',
-        gateways: String(supervisor.gateway_count ?? 1),
         status:   (supervisor.status ?? 'active') as 'active' | 'inactive',
       });
     }
@@ -346,19 +333,6 @@ function EditSupervisorDrawer({ supervisor, onClose }: { supervisor: Supervisor 
                 onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
                   text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Assigned Gateway</label>
-              <select value={form.gateways}
-                onChange={e => setForm(f => ({ ...f, gateways: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
-                  text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                <option value="">No gateway assigned</option>
-                {gatewayList.map(gw => (
-                  <option key={gw.id} value={gw.id}>{gw.name || gw.location}</option>
-                ))}
-              </select>
             </div>
 
             <div className="space-y-1.5">

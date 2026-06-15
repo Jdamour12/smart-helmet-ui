@@ -1,106 +1,155 @@
 'use client';
 
-import { temperatureData, humidityData, mockHelmets } from '@/lib/mock-data';
-import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useEnvironment } from '@/hooks/use-analytics';
+import { useHelmetsWithReadings } from '@/hooks/use-helmets';
+import type { Helmet } from '@/lib/types';
+import { Thermometer, Droplets, Gauge, AlertTriangle } from 'lucide-react';
+
+interface EnvData {
+  temperature: { avg: number; max: number; min: number };
+  humidity:    { avg: number; max: number; min: number };
+}
 
 const tempThresholds = [
-  { label: 'Safe (< 30°C)', min: 0, max: 30, color: 'success' },
-  { label: 'Warning (30-35°C)', min: 30, max: 35, color: 'warning' },
-  { label: 'Critical (> 35°C)', min: 35, max: 100, color: 'critical' },
+  { label: 'Safe (< 30°C)',    color: 'success' },
+  { label: 'Warning (30-40°C)', color: 'warning' },
+  { label: 'Critical (> 40°C)', color: 'critical' },
 ];
 
 const humidityThresholds = [
-  { label: 'Safe (< 60%)', min: 0, max: 60, color: 'success' },
-  { label: 'Warning (60-75%)', min: 60, max: 75, color: 'warning' },
-  { label: 'Critical (> 75%)', min: 75, max: 100, color: 'critical' },
+  { label: 'Safe (< 60%)',     color: 'success' },
+  { label: 'Warning (60-75%)', color: 'warning' },
+  { label: 'Critical (> 75%)', color: 'critical' },
 ];
 
 export default function EnvironmentAnalytics() {
-  const avgTemp = mockHelmets.reduce((sum, h) => sum + h.temperature, 0) / mockHelmets.length;
-  const avgHumidity = mockHelmets.reduce((sum, h) => sum + h.humidity, 0) / mockHelmets.length;
+  const { data: envRaw, isLoading: envLoading }         = useEnvironment();
+  const { data: helmetsRaw, isLoading: helmetsLoading } = useHelmetsWithReadings();
+
+  const envData    = envRaw as EnvData | undefined;
+  const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
+  const loading    = envLoading || helmetsLoading;
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <p className="text-foreground-secondary">Loading...</p>
+      </div>
+    );
+  }
+
+  const avgTemp      = envData?.temperature?.avg ?? 0;
+  const maxTemp      = envData?.temperature?.max ?? 0;
+  const minTemp      = envData?.temperature?.min ?? 0;
+  const avgHumidity  = envData?.humidity?.avg ?? 0;
+  const maxHumidity  = envData?.humidity?.max ?? 0;
+  const minHumidity  = envData?.humidity?.min ?? 0;
+  const tempWarnings = helmetList.filter(h => h.temperature > 40).length;
 
   return (
     <div className="p-6 space-y-6">
       <div>
         <h2 className="text-3xl font-bold text-foreground">Temperature & Humidity Analytics</h2>
-        <p className="text-foreground-secondary mt-1">Environmental conditions monitoring</p>
+        <p className="text-foreground-secondary mt-1">Environmental conditions monitoring across mining site</p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm">Average Temperature</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{avgTemp.toFixed(1)}°C</p>
-          <p className="text-xs text-foreground-tertiary mt-2">Current conditions</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-foreground-secondary text-sm font-medium">Avg Temperature</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{avgTemp.toFixed(1)}°C</p>
+              <p className="text-xs text-foreground-tertiary mt-2">Current average</p>
+            </div>
+            <div className="bg-warning/10 p-3 rounded-lg"><Thermometer className="w-6 h-6 text-warning" /></div>
+          </div>
         </div>
+
         <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <p className="text-foreground-secondary text-sm">Average Humidity</p>
-          <p className="text-3xl font-bold text-foreground mt-2">{avgHumidity.toFixed(1)}%</p>
-          <p className="text-xs text-foreground-tertiary mt-2">Current conditions</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-foreground-secondary text-sm font-medium">Avg Humidity</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{avgHumidity.toFixed(1)}%</p>
+              <p className="text-xs text-foreground-tertiary mt-2">Current average</p>
+            </div>
+            <div className="bg-primary/10 p-3 rounded-lg"><Droplets className="w-6 h-6 text-primary" /></div>
+          </div>
+        </div>
+
+        <div className="bg-background-secondary border border-border rounded-lg p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-foreground-secondary text-sm font-medium">Max Temperature</p>
+              <p className="text-3xl font-bold text-foreground mt-2">{maxTemp.toFixed(1)}°C</p>
+              <p className="text-xs text-foreground-tertiary mt-2">Highest reading</p>
+            </div>
+            <div className="bg-critical/10 p-3 rounded-lg"><Gauge className="w-6 h-6 text-critical" /></div>
+          </div>
+        </div>
+
+        <div className="bg-background-secondary border border-border rounded-lg p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-foreground-secondary text-sm font-medium">Temp Warnings</p>
+              <p className="text-3xl font-bold text-warning mt-2">{tempWarnings}</p>
+              <p className="text-xs text-foreground-tertiary mt-2">Above 40°C threshold</p>
+            </div>
+            <div className="bg-warning/10 p-3 rounded-lg"><AlertTriangle className="w-6 h-6 text-warning" /></div>
+          </div>
         </div>
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Temperature Trend */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Temperature Trend (24h)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={temperatureData}>
-              <XAxis dataKey="name" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                labelStyle={{ color: '#0f172a' }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#f59e0b" 
-                strokeWidth={2}
-                dot={{ fill: '#f59e0b', r: 4 }}
-                name="Temp (°C)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Temperature Summary</h3>
+          <div className="space-y-4">
+            {[
+              { label: 'Average', value: `${avgTemp.toFixed(1)}°C`, pct: Math.min((avgTemp / 60) * 100, 100), color: avgTemp > 55 ? 'bg-critical' : avgTemp > 40 ? 'bg-warning' : 'bg-success' },
+              { label: 'Maximum', value: `${maxTemp.toFixed(1)}°C`, pct: Math.min((maxTemp / 60) * 100, 100), color: maxTemp > 55 ? 'bg-critical' : maxTemp > 40 ? 'bg-warning' : 'bg-success' },
+              { label: 'Minimum', value: `${minTemp.toFixed(1)}°C`, pct: Math.min((minTemp / 60) * 100, 100), color: 'bg-success' },
+            ].map(({ label, value, pct, color }) => (
+              <div key={label}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-foreground-secondary text-sm">{label}</p>
+                  <p className="text-sm font-bold text-foreground">{value}</p>
+                </div>
+                <div className="h-2 bg-background rounded-full overflow-hidden">
+                  <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Humidity Trend */}
         <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Humidity Trend (24h)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={humidityData}>
-              <XAxis dataKey="name" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                labelStyle={{ color: '#0f172a' }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#0ea5e9" 
-                strokeWidth={2}
-                dot={{ fill: '#0ea5e9', r: 4 }}
-                name="Humidity (%)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Humidity Summary</h3>
+          <div className="space-y-4">
+            {[
+              { label: 'Average', value: `${avgHumidity.toFixed(1)}%`, pct: Math.min(avgHumidity, 100), color: avgHumidity > 75 ? 'bg-critical' : avgHumidity > 60 ? 'bg-warning' : 'bg-success' },
+              { label: 'Maximum', value: `${maxHumidity.toFixed(1)}%`, pct: Math.min(maxHumidity, 100), color: maxHumidity > 75 ? 'bg-critical' : maxHumidity > 60 ? 'bg-warning' : 'bg-success' },
+              { label: 'Minimum', value: `${minHumidity.toFixed(1)}%`, pct: Math.min(minHumidity, 100), color: 'bg-success' },
+            ].map(({ label, value, pct, color }) => (
+              <div key={label}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-foreground-secondary text-sm">{label}</p>
+                  <p className="text-sm font-bold text-foreground">{value}</p>
+                </div>
+                <div className="h-2 bg-background rounded-full overflow-hidden">
+                  <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Thresholds */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Temperature Thresholds</h3>
           <div className="space-y-3">
             {tempThresholds.map((t) => (
               <div key={t.label} className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded ${
-                  t.color === 'success' ? 'bg-success' : t.color === 'warning' ? 'bg-warning' : 'bg-critical'
-                }`} />
+                <div className={`w-3 h-3 rounded ${t.color === 'success' ? 'bg-success' : t.color === 'warning' ? 'bg-warning' : 'bg-critical'}`} />
                 <span className="text-foreground text-sm">{t.label}</span>
               </div>
             ))}
@@ -112,9 +161,7 @@ export default function EnvironmentAnalytics() {
           <div className="space-y-3">
             {humidityThresholds.map((h) => (
               <div key={h.label} className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded ${
-                  h.color === 'success' ? 'bg-success' : h.color === 'warning' ? 'bg-warning' : 'bg-critical'
-                }`} />
+                <div className={`w-3 h-3 rounded ${h.color === 'success' ? 'bg-success' : h.color === 'warning' ? 'bg-warning' : 'bg-critical'}`} />
                 <span className="text-foreground text-sm">{h.label}</span>
               </div>
             ))}
@@ -122,10 +169,17 @@ export default function EnvironmentAnalytics() {
         </div>
       </div>
 
-      {/* Detailed List */}
-      <div className="bg-background-secondary border border-border rounded-lg p-6">
+      <div className="bg-background-secondary border border-border rounded-lg p-6 overflow-x-auto">
         <h3 className="text-lg font-semibold text-foreground mb-4">Environmental Data by Worker</h3>
-        <div className="overflow-x-auto">
+        {helmetList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 bg-info/10 rounded-2xl flex items-center justify-center mb-4">
+              <Thermometer className="w-8 h-8 text-info" />
+            </div>
+            <p className="text-foreground-secondary font-medium">No environmental data yet</p>
+            <p className="text-foreground-tertiary text-sm mt-1">Temperature and humidity readings will appear once helmets are active</p>
+          </div>
+        ) : (
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50">
@@ -136,27 +190,23 @@ export default function EnvironmentAnalytics() {
               </tr>
             </thead>
             <tbody>
-              {mockHelmets.map((helmet) => {
-                const tempStatus = helmet.temperature > 35 ? 'critical' : helmet.temperature >= 30 ? 'warning' : 'success';
-                const humStatus = helmet.humidity > 75 ? 'critical' : helmet.humidity >= 60 ? 'warning' : 'success';
-                const overallStatus = tempStatus === 'critical' || humStatus === 'critical' ? 'critical' : tempStatus === 'warning' || humStatus === 'warning' ? 'warning' : 'success';
-
+              {helmetList.map((h) => {
+                const tempStatus = h.temperature > 55 ? 'critical' : h.temperature > 40 ? 'warning' : 'safe';
+                const humStatus  = h.humidity > 75 ? 'critical' : h.humidity > 60 ? 'warning' : 'safe';
+                const overall    = tempStatus === 'critical' || humStatus === 'critical' ? 'critical'
+                  : tempStatus === 'warning' || humStatus === 'warning' ? 'warning' : 'safe';
                 return (
-                  <tr key={helmet.id} className="border-b border-border/50 hover:bg-background/50">
-                    <td className="px-4 py-3 text-foreground text-sm">{helmet.worker_name}</td>
-                    <td className="px-4 py-3 text-foreground text-sm">{helmet.temperature}°C</td>
-                    <td className="px-4 py-3 text-foreground text-sm">{helmet.humidity}%</td>
+                  <tr key={h.id} className="border-b border-border/50 hover:bg-background/50">
+                    <td className="px-4 py-3 text-foreground text-sm">{h.worker_name}</td>
+                    <td className="px-4 py-3 text-foreground text-sm">{(h.temperature ?? 0).toFixed(1)}°C</td>
+                    <td className="px-4 py-3 text-foreground text-sm">{(h.humidity ?? 0).toFixed(1)}%</td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`text-xs px-2 py-1 rounded font-medium ${
-                          overallStatus === 'critical'
-                            ? 'bg-critical/10 text-critical'
-                            : overallStatus === 'warning'
-                            ? 'bg-warning/10 text-warning'
+                      <span className={`text-xs px-2 py-1 rounded font-medium ${
+                        overall === 'critical' ? 'bg-critical/10 text-critical'
+                          : overall === 'warning' ? 'bg-warning/10 text-warning'
                             : 'bg-success/10 text-success'
-                        }`}
-                      >
-                        {overallStatus.charAt(0).toUpperCase() + overallStatus.slice(1)}
+                      }`}>
+                        {overall.charAt(0).toUpperCase() + overall.slice(1)}
                       </span>
                     </td>
                   </tr>
@@ -164,7 +214,7 @@ export default function EnvironmentAnalytics() {
               })}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
     </div>
   );
