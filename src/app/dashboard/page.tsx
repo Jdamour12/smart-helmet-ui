@@ -1,7 +1,8 @@
 'use client';
 
-import { AlertTriangle, Users, Zap, TrendingUp } from 'lucide-react';
-import { useAnalyticsSummary, useGasLevels, useCompliance, useAlertsByLevel, useAlertTrends, useNetworkHealth } from '@/hooks/use-analytics';
+import Link from 'next/link';
+import { AlertTriangle, Users, Zap, TrendingUp, Radio, Gauge, BarChart3, ChevronRight } from 'lucide-react';
+import { useAnalyticsSummary, useGasLevels, useCompliance, useAlertsByLevel, useAlertTrends } from '@/hooks/use-analytics';
 import { useAlertFeed } from '@/hooks/use-alerts';
 import type { Alert } from '@/lib/types';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -13,14 +14,12 @@ export default function Dashboard() {
   const { data: byLevel } = useAlertsByLevel();
   const { data: trends }  = useAlertTrends(1);
   const { data: feed }    = useAlertFeed();
-  const { data: network } = useNetworkHealth();
 
   const s  = summary as { total_helmets?: number; total_workers?: number; unresolved_alerts?: number } | undefined;
   const g  = gas as { avg_co_ppm?: number; co_distribution?: { safe: number; warning: number; critical: number }; ch4_distribution?: { safe: number; warning: number; critical: number } } | undefined;
   const c  = comp as { compliance_rate_pct?: number } | undefined;
   const lv = byLevel as { level: string; count: number }[] | undefined;
   const tr = trends  as { date: string; count: number }[] | undefined;
-  const nw = network as { total_gateways?: number; online?: number; avg_packet_delivery_rate?: number } | undefined;
 
   const totalHelmets    = s?.total_helmets ?? 0;
   const criticalAlerts  = lv?.find(l => l.level === 'critical')?.count ?? 0;
@@ -124,13 +123,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Alerts + System Health */}
+      {/* Recent Alerts + Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-background-secondary border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Recent Alerts</h3>
           <div className="space-y-3">
             {recentAlerts.length === 0 && <p className="text-sm text-foreground-secondary">No recent alerts.</p>}
-            {recentAlerts.slice(0, 5).map((alert) => (
+            {recentAlerts.slice(0, 3).map((alert) => (
               <div key={alert.id} className="flex items-start gap-4 p-3 bg-background rounded-lg border border-border/50">
                 <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${alert.level === 'critical' ? 'bg-critical' : alert.level === 'warning' ? 'bg-warning' : 'bg-info'}`} />
                 <div className="flex-1 min-w-0">
@@ -148,29 +147,26 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-background-secondary border border-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">System Health</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-foreground-secondary text-sm">Connected Gateways</p>
-                <p className="text-lg font-bold text-foreground">{nw?.online ?? 0}/{nw?.total_gateways ?? 0}</p>
-              </div>
-              <div className="h-2 bg-background rounded-full overflow-hidden">
-                <div className="h-full bg-success" style={{ width: nw?.total_gateways ? `${((nw.online ?? 0) / nw.total_gateways) * 100}%` : '0%' }} />
-              </div>
-              <p className="text-xs text-success mt-1">Operational</p>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-foreground-secondary text-sm">Packet Delivery</p>
-                <p className="text-lg font-bold text-foreground">{((nw?.avg_packet_delivery_rate ?? 0) * 100).toFixed(1)}%</p>
-              </div>
-              <div className="h-2 bg-background rounded-full overflow-hidden">
-                <div className="h-full bg-success" style={{ width: `${(nw?.avg_packet_delivery_rate ?? 0) * 100}%` }} />
-              </div>
-              <p className="text-xs text-success mt-1">Optimal</p>
-            </div>
+        <div className="bg-background-secondary border border-border rounded-lg p-6 space-y-4">
+          <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+          <div className="space-y-3">
+            {([
+              { label: 'Real-time Monitoring', href: '/dashboard/helmets',       Icon: Radio,         color: 'primary'  },
+              { label: 'Gas Analytics',        href: '/dashboard/gas-analytics', Icon: Gauge,         color: 'warning'  },
+              { label: 'Compliance Reports',   href: '/dashboard/compliance',    Icon: BarChart3,     color: 'success'  },
+              { label: 'Impact Detection',     href: '/dashboard/impacts',       Icon: AlertTriangle, color: 'critical' },
+            ] as const).map(({ label, href, Icon, color }) => (
+              <Link key={href} href={href}
+                className={`flex items-center justify-between p-4 rounded-xl border border-border bg-background hover:bg-${color}/5 hover:border-${color}/30 transition-colors group`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 bg-${color}/10 rounded-lg flex items-center justify-center`}>
+                    <Icon className={`w-4 h-4 text-${color}`} />
+                  </div>
+                  <span className="text-sm font-medium text-foreground">{label}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-foreground-tertiary group-hover:text-foreground transition-colors" />
+              </Link>
+            ))}
           </div>
         </div>
       </div>

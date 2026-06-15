@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, X, Mail, Phone, Briefcase, Users, Calendar, HardHat, UserCheck, AlertCircle, TrendingUp, Wifi } from 'lucide-react';
+import { Eye, X, Mail, Phone, Briefcase, Users, HardHat, UserCheck, AlertCircle, Wifi } from 'lucide-react';
 import { useWorkers } from '@/hooks/use-workers';
 import { useGateways } from '@/hooks/use-gateways';
-import type { Worker, Gateway } from '@/lib/types';
+import { useHelmets } from '@/hooks/use-helmets';
+import type { Worker, Gateway, Helmet } from '@/lib/types';
 
 /* ─── Overlay ─────────────────────────────────────────────── */
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -41,9 +42,6 @@ function ViewWorkerDrawer({ worker, gateways, onClose }: { worker: Worker | null
               <div>
                 <h2 className="text-xl font-bold text-foreground">{worker.name}</h2>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <span className="text-xs text-foreground-tertiary bg-background px-2 py-0.5 rounded-md border border-border font-mono">
-                    {worker.id}
-                  </span>
                   <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
                     worker.status === 'active' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
                   }`}>
@@ -155,12 +153,14 @@ export default function WorkersPage() {
   const [viewWorker, setViewWorker] = useState<Worker | null>(null);
   const { data: workersRaw, isLoading } = useWorkers();
   const { data: gatewaysRaw } = useGateways();
+  const { data: helmetsRaw }  = useHelmets();
   const workerList  = (workersRaw  as Worker[]  | undefined) ?? [];
   const gatewayList = (gatewaysRaw as Gateway[] | undefined) ?? [];
+  const helmetList  = (helmetsRaw  as Helmet[]  | undefined) ?? [];
 
-  const activeCount    = workerList.filter(w => w.status === 'active').length;
-  const inactiveCount  = workerList.length - activeCount;
-  const activationRate = workerList.length ? Math.round((activeCount / workerList.length) * 100) : 0;
+  const activeCount   = workerList.filter(w => w.status === 'active').length;
+  const inactiveCount = workerList.length - activeCount;
+  const activeHelmets = helmetList.filter(h => h.status === 'active').length;
 
   return (
     <>
@@ -173,10 +173,10 @@ export default function WorkersPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Workers',    value: workerList.length,    color: 'primary', sub: 'All accounts',      Icon: Users },
-            { label: 'Active Workers',   value: activeCount,          color: 'success', sub: 'Currently active',  Icon: UserCheck },
-            { label: 'Inactive Workers', value: inactiveCount,        color: 'warning', sub: 'Need attention',    Icon: AlertCircle },
-            { label: 'Activation Rate',  value: `${activationRate}%`, color: 'info',    sub: 'Active ratio',      Icon: TrendingUp },
+            { label: 'Total Workers',    value: workerList.length, color: 'primary', sub: 'All accounts',     Icon: Users },
+            { label: 'Active Workers',   value: activeCount,       color: 'success', sub: 'Currently active', Icon: UserCheck },
+            { label: 'Inactive Workers', value: inactiveCount,     color: 'warning', sub: 'Need attention',   Icon: AlertCircle },
+            { label: 'Active Helmets',   value: activeHelmets,     color: 'info',    sub: 'In use now',       Icon: HardHat },
           ].map(({ label, value, color, sub, Icon }) => (
             <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
               <div className="flex items-start justify-between">

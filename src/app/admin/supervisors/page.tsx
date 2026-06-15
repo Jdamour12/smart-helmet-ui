@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   Plus, Eye, Edit2, Trash2, X,
   Mail, MapPin, Users, Wifi,
-  Calendar, Clock, ChevronRight, Shield, UserCheck,
+  Calendar, Clock, ChevronRight, Shield, UserCheck, UserX,
 } from 'lucide-react';
 import {
   useSupervisors, useCreateSupervisor, useUpdateSupervisor, useDeleteSupervisor,
@@ -24,10 +24,8 @@ function Overlay({ onClick }: { onClick: () => void }) {
 
 /* ─── Add Supervisor Drawer ───────────────────────────────── */
 function AddSupervisorDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [form, setForm] = useState({ name: '', email: '', location: '', phone: '', gateway_id: '' });
+  const [form, setForm] = useState({ name: '', email: '', location: '', phone: '' });
   const { mutate: createSupervisor, isPending } = useCreateSupervisor();
-  const { data: gatewaysRaw } = useGateways();
-  const gatewayList = (gatewaysRaw as Gateway[] | undefined) ?? [];
 
   if (!open) return null;
 
@@ -93,19 +91,6 @@ function AddSupervisorDrawer({ open, onClose }: { open: boolean; onClose: () => 
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
                   text-foreground placeholder:text-foreground-tertiary
                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Assign Gateway</label>
-              <select value={form.gateway_id}
-                onChange={e => setForm(f => ({ ...f, gateway_id: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg
-                  text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                <option value="">No gateway assigned</option>
-                {gatewayList.map(gw => (
-                  <option key={gw.id} value={gw.id}>{gw.name || gw.location}</option>
-                ))}
-              </select>
             </div>
 
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
@@ -421,6 +406,7 @@ export default function SupervisorsPage() {
 
   const { data: supsRaw, isLoading } = useSupervisors();
   const { mutate: deleteSupervisor }  = useDeleteSupervisor();
+  const { mutate: updateSupervisor }  = useUpdateSupervisor();
 
   const supList     = (supsRaw as Supervisor[] | undefined) ?? [];
   const activeCount = supList.filter(s => s.status === 'active').length;
@@ -442,10 +428,10 @@ export default function SupervisorsPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Supervisors',  value: supList.length, sub: 'Registered accounts',      color: 'primary',  Icon: Shield },
-            { label: 'Active Supervisors', value: activeCount,    sub: 'Currently active',         color: 'success',  Icon: UserCheck },
-            { label: 'Avg Workers',        value: supList.length ? Math.round(supList.reduce((a, s) => a + (s.worker_count ?? 0), 0) / supList.length) : 0, sub: 'Per supervisor', color: 'info', Icon: Users },
-            { label: 'Avg Gateways',       value: supList.length ? Math.round(supList.reduce((a, s) => a + (s.gateway_count ?? 0), 0) / supList.length) : 0, sub: 'Per supervisor', color: 'warning', Icon: Wifi },
+            { label: 'Total Supervisors',    value: supList.length,               sub: 'Registered accounts', color: 'primary', Icon: Shield },
+            { label: 'Active Supervisors',   value: activeCount,                  sub: 'Currently active',    color: 'success', Icon: UserCheck },
+            { label: 'Avg Workers',          value: supList.length ? Math.round(supList.reduce((a, s) => a + (s.worker_count ?? 0), 0) / supList.length) : 0, sub: 'Per supervisor', color: 'info', Icon: Users },
+            { label: 'Inactive Supervisors', value: supList.length - activeCount, sub: 'Not active',          color: 'warning', Icon: UserX },
           ].map(({ label, value, sub, color, Icon }) => (
             <div key={label} className="bg-background-secondary border border-border rounded-lg p-6">
               <div className="flex items-start justify-between">
@@ -480,7 +466,7 @@ export default function SupervisorsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    {['Name', 'Email', 'Department', 'Workers', 'Status', 'Actions'].map(h => (
+                    {['Name', 'Email', 'Workers', 'Status', 'Actions'].map(h => (
                       <th key={h} className="text-left py-3 px-4 text-foreground-secondary text-sm font-semibold">{h}</th>
                     ))}
                   </tr>
@@ -490,7 +476,6 @@ export default function SupervisorsPage() {
                     <tr key={sup.id} className="border-b border-border/50 hover:bg-background transition-colors">
                       <td className="py-3 px-4 text-foreground font-medium">{sup.name}</td>
                       <td className="py-3 px-4 text-foreground-secondary text-sm">{sup.email}</td>
-                      <td className="py-3 px-4 text-foreground-secondary text-sm">{sup.department}</td>
                       <td className="py-3 px-4 text-foreground text-sm">{sup.worker_count ?? 0}</td>
                       <td className="py-3 px-4">
                         <span className={`text-xs px-3 py-1 rounded-full font-medium ${
@@ -504,6 +489,14 @@ export default function SupervisorsPage() {
                           </button>
                           <button onClick={() => setEditSup(sup)} className="p-2 hover:bg-background rounded transition-colors" title="Edit">
                             <Edit2 className="w-4 h-4 text-primary" />
+                          </button>
+                          <button
+                            onClick={() => updateSupervisor({ id: sup.id, data: { status: sup.status === 'active' ? 'inactive' : 'active' } })}
+                            className="p-2 hover:bg-background rounded transition-colors"
+                            title={sup.status === 'active' ? 'Deactivate' : 'Activate'}>
+                            {sup.status === 'active'
+                              ? <UserX className="w-4 h-4 text-warning" />
+                              : <UserCheck className="w-4 h-4 text-success" />}
                           </button>
                           <button onClick={() => deleteSupervisor(sup.id)} className="p-2 hover:bg-background rounded transition-colors" title="Delete">
                             <Trash2 className="w-4 h-4 text-critical" />

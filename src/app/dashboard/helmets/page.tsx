@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useHelmetsWithReadings, useCreateHelmet, useUpdateHelmet, useDeleteHelmet } from '@/hooks/use-helmets';
+import { useState, useEffect } from 'react';
+import { useHelmetsWithReadings, useHelmets, useCreateHelmet, useUpdateHelmet, useDeleteHelmet } from '@/hooks/use-helmets';
 import { useCreateWorker } from '@/hooks/use-workers';
 import { useGateways } from '@/hooks/use-gateways';
 import { useDepartments } from '@/hooks/use-departments';
@@ -9,8 +9,8 @@ import { useHelmetLive } from '@/hooks/use-websocket-helmets';
 import type { Helmet, Gateway, Department } from '@/lib/types';
 import {
   Radio, Users, AlertTriangle, Zap, Plus, Eye, Edit2, Trash2,
-  X, Wifi, Battery, Thermometer, Wind, Droplets,
-  ShieldCheck, ShieldAlert, Activity, Clock, ChevronRight,
+  X, Battery, Thermometer, Wind, Droplets,
+  ShieldCheck, ShieldAlert, Activity, ChevronRight,
 } from 'lucide-react';
 
 function Overlay({ onClick }: { onClick: () => void }) {
@@ -18,12 +18,16 @@ function Overlay({ onClick }: { onClick: () => void }) {
 }
 
 /* ─── Add Worker drawer ──────────────────────────────────── */
-function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: () => void; gateways: Gateway[] }) {
-  const [form, setForm] = useState({ name: '', department_id: '', phone: '', gateway_id: '' });
+function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [form, setForm] = useState({ name: '', department_id: '', phone: '', helmet_id: '' });
   const { mutate: createWorker } = useCreateWorker();
   const { mutate: createHelmet } = useCreateHelmet();
-  const { data: deptsRaw } = useDepartments();
-  const deptList = (deptsRaw as Department[] | undefined) ?? [];
+  const { mutate: updateHelmet } = useUpdateHelmet();
+  const { data: deptsRaw }   = useDepartments();
+  const { data: helmetsRaw } = useHelmets();
+  const deptList          = (deptsRaw   as Department[] | undefined) ?? [];
+  const helmetList        = (helmetsRaw as Helmet[]     | undefined) ?? [];
+  const unassignedHelmets = helmetList.filter(h => !h.worker_id);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +41,12 @@ function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: 
       } as any,
       {
         onSuccess: (newWorker: any) => {
-          createHelmet(
-            { worker_id: newWorker.id, gateway_id: form.gateway_id || undefined } as any,
-            { onSuccess: () => { setForm({ name: '', department_id: '', phone: '', gateway_id: '' }); onClose(); } },
-          );
+          const reset = () => { setForm({ name: '', department_id: '', phone: '', helmet_id: '' }); onClose(); };
+          if (form.helmet_id) {
+            updateHelmet({ id: form.helmet_id, data: { worker_id: newWorker.id } }, { onSuccess: reset });
+          } else {
+            createHelmet({ worker_id: newWorker.id } as any, { onSuccess: reset });
+          }
         },
       },
     );
@@ -84,11 +90,11 @@ function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: 
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Gateway Assignment <span className="text-critical">*</span></label>
-              <select required value={form.gateway_id} onChange={e => setForm(f => ({ ...f, gateway_id: e.target.value }))}
+              <label className="text-sm font-medium text-foreground">Assign Helmet</label>
+              <select value={form.helmet_id} onChange={e => setForm(f => ({ ...f, helmet_id: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                <option value="">Select gateway...</option>
-                {gateways.map(gw => <option key={gw.id} value={gw.id}>{gw.name || gw.location} — {gw.location}</option>)}
+                <option value="">Auto-assign new helmet</option>
+                {unassignedHelmets.map(h => <option key={h.id} value={h.id}>{h.id}</option>)}
               </select>
             </div>
           </form>
@@ -103,23 +109,18 @@ function AddWorkerDrawer({ open, onClose, gateways }: { open: boolean; onClose: 
 }
 
 /* ─── View Worker drawer with live WebSocket data ────────── */
-function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helmet | null; onClose: () => void; onEdit: (h: Helmet) => void; gateways: Gateway[] }) {
+function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; onClose: () => void; onEdit: (h: Helmet) => void }) {
   const live = useHelmetLive(helmet?.id ?? null);
 
   if (!helmet) return null;
 
-  const gateway = gateways.find(gw => gw.id === helmet.gateway_id);
-  const gatewayLabel = gateway ? (gateway.name || gateway.location) : helmet.gateway_id;
-
-  const co   = live?.co_ppm         ?? helmet.co   ?? 0;
-  const ch4  = live?.ch4_percent    ?? helmet.ch4  ?? 0;
-  const temp = live?.temperature    ?? helmet.temperature ?? 0;
-  const hum  = live?.humidity       ?? helmet.humidity    ?? 0;
-  const worn   = live?.helmet_worn         ?? helmet.helmet_wear;
-  const impact = live?.vibration_detected  ?? helmet.impact_detected;
-  const battery = live?.battery_level     ?? helmet.battery ?? 0;
-  const signal  = live?.signal_strength     ?? helmet.signal_strength ?? 0;
-  const lastTs = live?.recorded_at         ?? helmet.last_update;
+  const co      = live?.co_ppm            ?? helmet.co          ?? 0;
+  const ch4     = live?.ch4_percent       ?? helmet.ch4         ?? 0;
+  const temp    = live?.temperature       ?? helmet.temperature ?? 0;
+  const hum     = live?.humidity          ?? helmet.humidity    ?? 0;
+  const worn    = live?.helmet_worn       ?? helmet.helmet_wear;
+  const impact  = live?.vibration_detected ?? helmet.impact_detected;
+  const battery = live?.battery_level     ?? helmet.battery     ?? 0;
 
   const initials = (helmet.worker_name ?? '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
@@ -134,8 +135,6 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helme
               <div>
                 <h2 className="text-xl font-bold text-foreground">{helmet.worker_name}</h2>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <span className="text-xs text-foreground-tertiary bg-background px-2 py-0.5 rounded-md border border-border font-mono">{helmet.worker_id}</span>
-                  <span className="text-xs text-foreground-tertiary bg-background px-2 py-0.5 rounded-md border border-border font-mono">{helmet.id}</span>
                   <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${helmet.status === 'active' ? 'bg-success/15 text-success' : helmet.status === 'alarm' ? 'bg-critical/15 text-critical' : 'bg-foreground-tertiary/10 text-foreground-tertiary'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${helmet.status === 'active' ? 'bg-success' : helmet.status === 'alarm' ? 'bg-critical animate-pulse' : 'bg-foreground-tertiary'}`} />
                     {helmet.status === 'active' ? 'Active' : helmet.status === 'alarm' ? 'Alarm' : 'Inactive'}
@@ -147,10 +146,8 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helme
                         : live.ai_prediction === 'safe' ? 'bg-success/15 text-success'
                           : 'bg-foreground-tertiary/10 text-foreground-tertiary'
                     }`}>
-                      AI: {live.ai_prediction === 'danger'
-                        ? `DANGER (${live.ai_danger_votes ?? 0}/4)`
-                        : live.ai_prediction === 'safe'
-                          ? `Safe (${(live.ai_confidence ?? 0).toFixed(1)}%)`
+                      AI: {live.ai_prediction === 'danger' ? 'DANGER'
+                        : live.ai_prediction === 'safe' ? `Safe (${(live.ai_confidence ?? 0).toFixed(1)}%)`
                           : 'Loading...'}
                     </span>
                   )}
@@ -232,32 +229,13 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helme
           {/* Device Info */}
           <section>
             <h3 className="text-xs font-bold text-foreground-tertiary uppercase tracking-widest mb-4">Device Information</h3>
-            <div className="space-y-3">
-              <div className="p-5 rounded-2xl border border-border bg-background">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2"><Battery className="w-4 h-4 text-foreground-secondary" /><span className="text-sm font-semibold text-foreground">Battery Level</span></div>
-                  <span className={`text-lg font-bold ${battery > 60 ? 'text-success' : battery > 30 ? 'text-warning' : 'text-critical'}`}>{battery}%</span>
-                </div>
-                <div className="h-2.5 bg-background-tertiary rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${battery > 60 ? 'bg-success' : battery > 30 ? 'bg-warning' : 'bg-critical'}`} style={{ width: `${battery}%` }} />
-                </div>
+            <div className="p-5 rounded-2xl border border-border bg-background">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2"><Battery className="w-4 h-4 text-foreground-secondary" /><span className="text-sm font-semibold text-foreground">Battery Level</span></div>
+                <span className={`text-lg font-bold ${battery > 60 ? 'text-success' : battery > 30 ? 'text-warning' : 'text-critical'}`}>{battery}%</span>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-4 rounded-2xl border border-border bg-background">
-                  <Wifi className="w-4 h-4 text-foreground-secondary mb-2" />
-                  <p className="text-sm font-bold text-foreground">{signal} dBm</p>
-                  <p className="text-xs text-foreground-tertiary mt-0.5">Signal</p>
-                </div>
-                <div className="p-4 rounded-2xl border border-border bg-background">
-                  <Radio className="w-4 h-4 text-foreground-secondary mb-2" />
-                  <p className="text-sm font-bold text-foreground truncate">{gatewayLabel}</p>
-                  <p className="text-xs text-foreground-tertiary mt-0.5">Gateway</p>
-                </div>
-                <div className="p-4 rounded-2xl border border-border bg-background">
-                  <Clock className="w-4 h-4 text-foreground-secondary mb-2" />
-                  <p className="text-sm font-bold text-foreground">{lastTs ? new Date(lastTs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'}</p>
-                  <p className="text-xs text-foreground-tertiary mt-0.5">Last update</p>
-                </div>
+              <div className="h-2.5 bg-background-tertiary rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${battery > 60 ? 'bg-success' : battery > 30 ? 'bg-warning' : 'bg-critical'}`} style={{ width: `${battery}%` }} />
               </div>
             </div>
           </section>
@@ -277,10 +255,18 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit, gateways }: { helmet: Helme
 /* ─── Edit Worker drawer ─────────────────────────────────── */
 function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null; onClose: () => void; gateways: Gateway[] }) {
   const { mutate: updateHelmet } = useUpdateHelmet();
+  const [form, setForm] = useState({
+    gateway_id: helmet?.gateway_id ?? '',
+    status: (helmet?.status ?? 'inactive') as 'active' | 'inactive' | 'alarm',
+  });
+
+  useEffect(() => {
+    if (helmet) {
+      setForm({ gateway_id: helmet.gateway_id, status: helmet.status as 'active' | 'inactive' | 'alarm' });
+    }
+  }, [helmet?.id]);
 
   if (!helmet) return null;
-
-  const [form, setForm] = useState({ gateway_id: helmet.gateway_id, status: helmet.status as 'active' | 'inactive' | 'alarm' });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -297,7 +283,7 @@ function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null
         <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
           <div>
             <h2 className="text-base font-semibold text-foreground">Edit Worker</h2>
-            <p className="text-xs text-foreground-tertiary mt-0.5">{helmet.worker_name} · {helmet.worker_id}</p>
+            <p className="text-xs text-foreground-tertiary mt-0.5">{helmet.worker_name}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-background-tertiary rounded-lg transition-colors"><X className="w-4 h-4 text-foreground-secondary" /></button>
         </div>
@@ -308,13 +294,10 @@ function EditWorkerDrawer({ helmet, onClose, gateways }: { helmet: Helmet | null
               <input readOnly value={helmet.worker_name} className="w-full px-3 py-2.5 text-sm bg-background-tertiary border border-border rounded-lg text-foreground-secondary cursor-not-allowed" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Helmet ID</label>
-              <input readOnly value={helmet.id} className="w-full px-3 py-2.5 text-sm bg-background-tertiary border border-border rounded-lg text-foreground-secondary cursor-not-allowed font-mono" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Gateway Assignment <span className="text-critical">*</span></label>
-              <select required value={form.gateway_id} onChange={e => setForm(f => ({ ...f, gateway_id: e.target.value }))}
+              <label className="text-sm font-medium text-foreground">Gateway Assignment</label>
+              <select value={form.gateway_id} onChange={e => setForm(f => ({ ...f, gateway_id: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
+                <option value="">No gateway</option>
                 {gateways.map(gw => <option key={gw.id} value={gw.id}>{gw.name || gw.location} — {gw.location}</option>)}
               </select>
             </div>
@@ -452,8 +435,8 @@ export default function HelmetMonitoring() {
         </div>
       </div>
 
-      <AddWorkerDrawer open={addWorkerOpen} onClose={() => setAddWorkerOpen(false)} gateways={gwList} />
-      <ViewWorkerDrawer helmet={viewHelmet} onClose={() => setViewHelmet(null)} onEdit={h => { setViewHelmet(null); setEditHelmet(h); }} gateways={gwList} />
+      <AddWorkerDrawer open={addWorkerOpen} onClose={() => setAddWorkerOpen(false)} />
+      <ViewWorkerDrawer helmet={viewHelmet} onClose={() => setViewHelmet(null)} onEdit={h => { setViewHelmet(null); setEditHelmet(h); }} />
       <EditWorkerDrawer helmet={editHelmet} onClose={() => setEditHelmet(null)} gateways={gwList} />
     </>
   );

@@ -10,7 +10,6 @@ import {
   Thermometer,
   AlertTriangle,
   BarChart3,
-  Wifi,
   X,
 } from 'lucide-react';
 
@@ -21,7 +20,6 @@ const navItems = [
   { href: '/dashboard/environment', label: 'Temperature & Humidity', icon: Thermometer },
   { href: '/dashboard/impacts', label: 'Impact Detection', icon: AlertTriangle },
   { href: '/dashboard/compliance', label: 'Compliance Reports', icon: BarChart3 },
-  { href: '/dashboard/network', label: 'Network Status', icon: Wifi },
 ];
 
 interface SidebarProps {
