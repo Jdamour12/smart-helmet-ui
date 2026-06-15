@@ -49,6 +49,24 @@ export function HelmetCard({ helmet }: HelmetCardProps) {
           )}
         </div>
       </div>
+      {/* AI Prediction Badge */}
+      {helmet.ai_prediction && (
+        <div className="mt-2 mb-4">
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+            helmet.ai_prediction === 'danger'
+              ? 'bg-red-100 text-red-600'
+              : helmet.ai_prediction === 'safe'
+              ? 'bg-green-100 text-green-600'
+              : 'bg-slate-100 text-slate-500'
+          }`}>
+            AI: {helmet.ai_prediction === 'danger'
+              ? `DANGER (${helmet.ai_danger_votes ?? 0}/4)`
+              : helmet.ai_prediction === 'safe'
+              ? `Safe ${helmet.ai_confidence ? `(${helmet.ai_confidence}%)` : ''}`
+              : 'Loading...'}
+          </span>
+        </div>
+      )}
 
       {/* Status Grid */}
       <div className="grid grid-cols-2 gap-4 mb-4">

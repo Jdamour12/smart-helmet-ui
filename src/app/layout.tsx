@@ -23,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="scroll-smooth bg-background text-foreground">
-      <body className="font-sans antialiased">
+    <html suppressHydrationWarning={true} lang="en" className="scroll-smooth bg-background text-foreground">
+      <body suppressHydrationWarning={true} className="font-sans antialiased">
         <QueryProvider>
           {children}
         </QueryProvider>

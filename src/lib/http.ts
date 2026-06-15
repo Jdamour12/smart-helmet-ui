@@ -35,17 +35,28 @@ export async function http<T>(path: string, options: RequestInit = {}): Promise<
       // Session expired — force re-login
       window.location.href = '/login';
     }
-    const body = await res.json().catch(() => ({}));
+    const txt = await res.text().catch(() => '');
+    let body: any = {};
+    try { body = txt ? JSON.parse(txt) : {}; } catch { body = { detail: txt || 'Invalid email or password' }; }
     throw new Error((body as any).detail || 'Invalid email or password');
   }
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
+    const txt = await res.text().catch(() => '');
+    let error: any = { detail: 'Request failed' };
+    try { error = txt ? JSON.parse(txt) : error; } catch { error = { detail: txt || 'Request failed' }; }
     throw new Error(error.detail || 'Request failed');
   }
 
   if (res.status === 204) return null as T;
-  return res.json();
+  const txt = await res.text().catch(() => '');
+  if (!txt) return null as T;
+  try {
+    return JSON.parse(txt) as T;
+  } catch {
+    // fallback: return raw text
+    return txt as unknown as T;
+  }
 }
 
 export async function httpUpload<T>(path: string, form: FormData): Promise<T> {

@@ -1,5 +1,6 @@
-'use client';
+ 'use client';
 
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -29,6 +30,12 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const [activeHref, setActiveHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Set active href only on client after mount to avoid SSR/CSR mismatch
+    setActiveHref(typeof window !== 'undefined' ? window.location.pathname : null);
+  }, [pathname]);
 
   return (
     <>
@@ -70,7 +77,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = activeHref === item.href;
             return (
               <Link
                 key={item.href}
