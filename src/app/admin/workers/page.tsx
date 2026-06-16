@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, X, Mail, Phone, Briefcase, Users, HardHat, UserCheck, AlertCircle } from 'lucide-react';
-import { useWorkers } from '@/hooks/use-workers';
+import { Eye, ShieldPlus, X, Mail, Phone, Briefcase, Users, HardHat, UserCheck, AlertCircle } from 'lucide-react';
+import { useWorkers, usePromoteWorker } from '@/hooks/use-workers';
 import { useHelmets } from '@/hooks/use-helmets';
 import type { Worker, Helmet } from '@/lib/types';
 
@@ -136,6 +136,7 @@ export default function WorkersPage() {
   const [viewWorker, setViewWorker] = useState<Worker | null>(null);
   const { data: workersRaw, isLoading, isError, error } = useWorkers();
   const { data: helmetsRaw }  = useHelmets();
+  const { mutate: promoteWorker, isPending: isPromoting } = usePromoteWorker();
   const workerList  = (workersRaw  as Worker[]  | undefined) ?? [];
   const helmetList  = (helmetsRaw  as Helmet[]  | undefined) ?? [];
 
@@ -200,7 +201,7 @@ export default function WorkersPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    {['Name', 'Email', 'Department', 'Status', 'Details'].map(h => (
+                    {['Name', 'Email', 'Department', 'Status', 'Details', 'Actions'].map(h => (
                       <th key={h} className="text-left py-3 px-4 text-foreground-secondary text-sm font-semibold">{h}</th>
                     ))}
                   </tr>
@@ -220,6 +221,21 @@ export default function WorkersPage() {
                         <button onClick={() => setViewWorker(worker)}
                           className="p-2 hover:bg-background rounded transition-colors" title="View details">
                           <Eye className="w-4 h-4 text-info" />
+                        </button>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          disabled={isPromoting}
+                          onClick={() => {
+                            if (confirm(`Promote ${worker.name} to supervisor? They will no longer be a worker.`)) {
+                              promoteWorker(worker.id);
+                            }
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
+                            border border-border text-foreground-secondary hover:bg-background-tertiary
+                            transition-colors disabled:opacity-50"
+                          title="Promote to supervisor">
+                          <ShieldPlus className="w-3.5 h-3.5" /> Promote
                         </button>
                       </td>
                     </tr>

@@ -6,7 +6,7 @@ export function mapHelmet(raw: any, latest?: any): Helmet {
   return {
     id: raw.id,
     worker_id: raw.worker_id ?? '',
-    worker_name: raw.worker_name ?? raw.helmet_code ?? 'Unassigned',
+    worker_name: raw.worker_name ?? raw.worker?.full_name ?? raw.worker?.name ?? raw.helmet_code ?? 'Unassigned',
     status: raw.status === 'active' ? 'active'
       : raw.status === 'critical' || raw.status === 'warning' ? 'alarm'
       : 'inactive',
@@ -69,8 +69,10 @@ function mergeLatestReading(helmet: Helmet, latest: any): Helmet {
 
 export async function list(params?: Record<string, string>): Promise<Helmet[]> {
   const q = params ? '?' + new URLSearchParams(params) : '';
-  const raw = await http<any[]>(`/helmets${q}`);
-  return raw.map((h) => mapHelmet(h));
+  const raw = await http<any>(`/helmets${q}`);
+  if (!raw) return [];
+  const arr = Array.isArray(raw) ? raw : (raw.results ?? raw.data ?? raw.helmets ?? []);
+  return arr.map((h: any) => mapHelmet(h));
 }
 
 export async function listWithReadings(params?: Record<string, string>): Promise<Helmet[]> {
@@ -124,16 +126,14 @@ export function create(data: Partial<Helmet> & { helmet_code?: string; worker_id
 }
 
 export function update(id: string, data: Partial<Helmet>) {
-  return http<any>(`/helmets/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      worker_id: data.worker_id || undefined,
-      status: data.status === 'alarm' ? 'critical'
-        : data.status === 'active' ? 'active'
-        : data.status === 'inactive' ? 'inactive'
-        : undefined,
-    }),
-  });
+  const body: Record<string, unknown> = {};
+  if (data.worker_id !== undefined) body.worker_id = data.worker_id || null;
+  if (data.status !== undefined) {
+    body.status = data.status === 'alarm' ? 'critical'
+      : data.status === 'active' ? 'active'
+      : 'inactive';
+  }
+  return http<any>(`/helmets/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
 }
 
 export function remove(id: string) {

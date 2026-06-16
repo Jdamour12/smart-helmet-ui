@@ -11,6 +11,7 @@ import {
   Thermometer,
   AlertTriangle,
   BarChart3,
+  Users,
   X,
 } from 'lucide-react';
 
@@ -23,6 +24,8 @@ const navItems = [
   { href: '/dashboard/compliance', label: 'Compliance Reports', icon: BarChart3 },
 ];
 
+const supervisorNavItem = { href: '/dashboard/workers', label: 'My Workers', icon: Users };
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,11 +34,20 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [activeHref, setActiveHref] = useState<string | null>(null);
+  const [isSupervisor, setIsSupervisor] = useState(false);
 
   useEffect(() => {
     // Set active href only on client after mount to avoid SSR/CSR mismatch
     setActiveHref(typeof window !== 'undefined' ? window.location.pathname : null);
+    try {
+      const user = JSON.parse(localStorage.getItem('user') ?? '{}');
+      setIsSupervisor(user?.role === 'supervisor');
+    } catch {
+      setIsSupervisor(false);
+    }
   }, [pathname]);
+
+  const items = isSupervisor ? [...navItems, supervisorNavItem] : navItems;
 
   return (
     <>
@@ -75,7 +87,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const Icon = item.icon;
             const isActive = activeHref === item.href;
             return (

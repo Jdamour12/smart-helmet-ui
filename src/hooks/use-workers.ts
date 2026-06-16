@@ -50,3 +50,15 @@ export function useDeleteWorker() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['workers'] }),
   });
 }
+
+export function usePromoteWorker() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => workersApi.promote(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workers'] });
+      qc.invalidateQueries({ queryKey: ['supervisors'] });
+      qc.invalidateQueries({ queryKey: ['helmets'] });
+    },
+  });
+}

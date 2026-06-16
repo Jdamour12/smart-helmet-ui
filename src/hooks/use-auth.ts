@@ -27,10 +27,12 @@ export function useLogin() {
         const me = await authApi.getMe();
         localStorage.setItem('user', JSON.stringify(me));
         qc.setQueryData(['me'], me);
+        saveToken(data.access_token, me.role);
       } catch {
         if (data.user) {
           localStorage.setItem('user', JSON.stringify(data.user));
           qc.setQueryData(['me'], data.user);
+          saveToken(data.access_token, data.user.role);
         }
       }
     },

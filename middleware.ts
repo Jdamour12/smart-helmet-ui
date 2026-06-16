@@ -31,6 +31,15 @@ export function middleware(request: NextRequest) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
+
+    // Role guard: admins only on /admin, supervisors only on /dashboard
+    const role = request.cookies.get('role')?.value;
+    if (role === 'admin' && pathname.startsWith('/dashboard')) {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    }
+    if (role === 'supervisor' && pathname.startsWith('/admin')) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
   }
 
   return NextResponse.next();

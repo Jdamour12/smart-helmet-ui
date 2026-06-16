@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useHelmetsWithReadings, useHelmets, useCreateHelmet, useUpdateHelmet, useDeleteHelmet } from '@/hooks/use-helmets';
 import { useCreateWorker } from '@/hooks/use-workers';
 import { useDepartments } from '@/hooks/use-departments';
@@ -18,7 +19,7 @@ function Overlay({ onClick }: { onClick: () => void }) {
 
 /* ─── Add Worker drawer ──────────────────────────────────── */
 function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [form, setForm] = useState({ name: '', department_id: '', phone: '', helmet_id: '' });
+  const [form, setForm] = useState({ name: '', email: '', department_id: '', phone: '', helmet_id: '' });
   const { mutate: createWorker } = useCreateWorker();
   const { mutate: createHelmet } = useCreateHelmet();
   const { mutate: updateHelmet } = useUpdateHelmet();
@@ -31,21 +32,32 @@ function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const selectedDept = deptList.find(d => d.id === form.department_id);
+    // supervisor_id is intentionally omitted — the backend auto-assigns
+    // the current logged-in supervisor's own Supervisor.id (it does NOT
+    // match the User.id stored in localStorage).
     createWorker(
       {
         name: form.name,
+        email: form.email.trim() || undefined,
         department: selectedDept?.name,
         department_id: form.department_id || undefined,
         phone: form.phone,
       } as any,
       {
         onSuccess: (newWorker: any) => {
-          const reset = () => { setForm({ name: '', department_id: '', phone: '', helmet_id: '' }); onClose(); };
+          const reset = () => {
+            setForm({ name: '', email: '', department_id: '', phone: '', helmet_id: '' });
+            onClose();
+            toast.success('Worker created successfully');
+          };
           if (form.helmet_id) {
-            updateHelmet({ id: form.helmet_id, data: { worker_id: newWorker.id } }, { onSuccess: reset });
+            updateHelmet({ id: form.helmet_id, data: { worker_id: newWorker.id } }, { onSuccess: reset, onError: reset });
           } else {
-            createHelmet({ worker_id: newWorker.id } as any, { onSuccess: reset });
+            createHelmet({ worker_id: newWorker.id } as any, { onSuccess: reset, onError: reset });
           }
+        },
+        onError: (err: any) => {
+          toast.error(err?.message ?? 'Failed to add worker. Please try again.');
         },
       },
     );
@@ -73,6 +85,13 @@ function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void
               <input required type="text" placeholder="e.g. James Carter" value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Email Address</label>
+              <input type="email" placeholder="worker@mining.com" value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+              <p className="text-xs text-foreground-tertiary">Optional, but required for the worker to receive a login and the welcome email.</p>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Department</label>
@@ -440,7 +459,7 @@ export default function HelmetMonitoring() {
               <tbody>
                 {helmetList.map((helmet) => (
                   <tr key={helmet.id} className="border-b border-border/50 hover:bg-background/50 transition-colors">
-                    <td className="px-4 py-4 text-foreground text-sm font-medium">{helmet.worker_name}</td>
+                    <td className="px-4 py-4 text-foreground text-sm font-medium">{helmet.worker_name || 'Unassigned'}</td>
                     <td className="px-4 py-4">
                       <span className={`text-xs px-2 py-1 rounded font-medium flex items-center gap-1 w-fit ${helmet.status === 'active' ? 'bg-success/10 text-success' : helmet.status === 'alarm' ? 'bg-critical/10 text-critical' : 'bg-foreground-tertiary/10 text-foreground-tertiary'}`}>
                         <span className={`w-2 h-2 rounded-full ${helmet.status === 'active' ? 'bg-success' : helmet.status === 'alarm' ? 'bg-critical' : 'bg-foreground-tertiary'}`} />

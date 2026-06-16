@@ -6,15 +6,17 @@ export function getToken(): string | null {
   return localStorage.getItem('token');
 }
 
-export function saveToken(token: string) {
+export function saveToken(token: string, role?: string) {
   localStorage.setItem('token', token);
   document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  if (role) document.cookie = `role=${role}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }
 
 export function clearToken() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   document.cookie = 'token=; path=/; max-age=0';
+  document.cookie = 'role=; path=/; max-age=0';
 }
 
 export async function http<T>(path: string, options: RequestInit = {}): Promise<T> {

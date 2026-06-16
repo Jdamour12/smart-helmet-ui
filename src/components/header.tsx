@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { clearToken } from "@/lib/http";
 import type { User as AppUser } from "@/lib/types";
 import {
+  useNotifications, useUnreadNotificationCount, useReadAllNotifications, useReadNotification,
+} from "@/hooks/use-notifications";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -16,6 +19,13 @@ import {
 export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter();
   const [user, setUser] = useState<AppUser | null>(null);
+
+  const { data: notifications } = useNotifications();
+  const { data: unread } = useUnreadNotificationCount();
+  const { mutate: readAll } = useReadAllNotifications();
+  const { mutate: readOne } = useReadNotification();
+  const notificationList = notifications ?? [];
+  const unreadCount = unread?.count ?? 0;
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -51,9 +61,45 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <button className="relative p-2 hover:bg-background-tertiary rounded-lg transition-colors">
-          <Bell className="w-5 h-5 text-foreground-secondary" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="relative p-2 hover:bg-background-tertiary rounded-lg transition-colors">
+              <Bell className="w-5 h-5 text-foreground-secondary" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-critical rounded-full" />
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <div className="flex items-center justify-between px-3 py-3">
+              <p className="font-semibold text-foreground text-sm">Notifications</p>
+              {unreadCount > 0 && (
+                <button onClick={() => readAll()} className="text-xs text-primary hover:underline">
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <DropdownMenuSeparator />
+            <div className="max-h-80 overflow-y-auto">
+              {notificationList.length === 0 ? (
+                <p className="px-3 py-4 text-sm text-foreground-tertiary text-center">No notifications</p>
+              ) : (
+                notificationList.map((n) => (
+                  <DropdownMenuItem
+                    key={n.id}
+                    className={`flex flex-col items-start gap-0.5 cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}
+                    onClick={() => !n.read && readOne(n.id)}
+                  >
+                    <span className="text-sm text-foreground">{n.message}</span>
+                    <span className="text-xs text-foreground-tertiary">
+                      {new Date(n.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
