@@ -10,6 +10,7 @@ import {
   BarChart3,
   FileText,
   Building2,
+  HardHat,
   X,
 } from 'lucide-react';
 
@@ -17,6 +18,7 @@ const adminNavItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/supervisors', label: 'Manage Supervisors', icon: Users },
   { href: '/admin/workers', label: 'Workers', icon: UserCheck },
+  { href: '/admin/helmets', label: 'Helmets', icon: HardHat },
   { href: '/admin/departments', label: 'Departments', icon: Building2 },
   { href: '/admin/analytics', label: 'System Analytics', icon: BarChart3 },
   { href: '/admin/reports', label: 'Reports & Audit Logs', icon: FileText },

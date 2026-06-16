@@ -20,8 +20,10 @@ export interface TokenResponse {
 
 export interface Helmet {
   id: string;
+  helmet_code?: string;
   worker_id: string;
   worker_name: string;
+  zone?: string;
   status: 'active' | 'inactive' | 'alarm';
   co: number;
   ch4: number;

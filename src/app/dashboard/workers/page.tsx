@@ -7,7 +7,7 @@ import {
   Users, UserCheck, AlertCircle, HardHat,
 } from 'lucide-react';
 import { useWorkers, useCreateWorker, useUpdateWorker, useDeleteWorker } from '@/hooks/use-workers';
-import { useHelmets, useCreateHelmet, useUpdateHelmet } from '@/hooks/use-helmets';
+import { useHelmets, useUpdateHelmet } from '@/hooks/use-helmets';
 import { useDepartments } from '@/hooks/use-departments';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import type { Worker, Helmet, Department } from '@/lib/types';
@@ -25,7 +25,6 @@ function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void
   const [error, setError]         = useState('');
 
   const { mutateAsync: createWorkerAsync, isPending } = useCreateWorker();
-  const { mutateAsync: createHelmetAsync }            = useCreateHelmet();
   const { mutateAsync: updateHelmetAsync }            = useUpdateHelmet();
   const { data: deptsRaw }                  = useDepartments();
   const { data: helmetsRaw }                = useHelmets();
@@ -62,12 +61,6 @@ function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void
           await updateHelmetAsync({ id: helmetId, data: { worker_id: newWorker.id } });
         } catch {
           // continue even if helmet update fails
-        }
-      } else {
-        try {
-          await createHelmetAsync({ worker_id: newWorker.id } as any);
-        } catch {
-          // continue even if helmet create fails
         }
       }
 
@@ -167,11 +160,14 @@ function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void
                 onChange={e => setHelmetId(e.target.value)}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
               >
-                <option value="">Auto-assign new helmet</option>
+                <option value="">No helmet (assign later)</option>
                 {unassignedHelmets.map(h => (
-                  <option key={h.id} value={h.id}>{h.id}</option>
+                  <option key={h.id} value={h.id}>{h.helmet_code || h.id}{h.zone ? ` — ${h.zone}` : ''}</option>
                 ))}
               </select>
+              {unassignedHelmets.length === 0 && (
+                <p className="text-xs text-foreground-tertiary">No unassigned helmets available. Ask an admin to register one.</p>
+              )}
             </div>
           </div>
 
@@ -284,7 +280,7 @@ function ViewWorkerDrawer({
                   <HardHat className="w-4 h-4 text-foreground-secondary" />
                   <span className="text-xs font-semibold text-foreground-secondary">Helmet</span>
                 </div>
-                <p className="text-lg font-bold text-foreground font-mono">{helmet ? helmet.id : 'Unassigned'}</p>
+                <p className="text-lg font-bold text-foreground font-mono">{helmet ? (helmet.helmet_code || helmet.id) : 'Unassigned'}</p>
               </div>
             </div>
           </section>
@@ -405,7 +401,7 @@ function EditWorkerDrawer({
                   text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
                 <option value="">Unassigned</option>
                 {selectableHelmets.map(h => (
-                  <option key={h.id} value={h.id}>{h.id}</option>
+                  <option key={h.id} value={h.id}>{h.helmet_code || h.id}{h.zone ? ` — ${h.zone}` : ''}</option>
                 ))}
               </select>
             </div>
@@ -561,7 +557,7 @@ export default function SupervisorWorkersPage() {
                         <td className="py-3 px-4">
                           {helmet ? (
                             <span className="text-xs px-2 py-1 rounded-full font-medium bg-info/10 text-info font-mono">
-                              {helmet.id}
+                              {helmet.helmet_code || helmet.id}
                             </span>
                           ) : (
                             <span className="text-xs text-foreground-tertiary">Not assigned</span>

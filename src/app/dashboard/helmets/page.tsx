@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useHelmetsWithReadings, useHelmets, useCreateHelmet, useUpdateHelmet, useDeleteHelmet } from '@/hooks/use-helmets';
+import { useHelmetsWithReadings, useHelmets, useUpdateHelmet } from '@/hooks/use-helmets';
 import { useCreateWorker } from '@/hooks/use-workers';
 import { useDepartments } from '@/hooks/use-departments';
 import { useHelmetLive } from '@/hooks/use-websocket-helmets';
 import type { Helmet, Department } from '@/lib/types';
 import {
-  Radio, Users, AlertTriangle, Zap, Plus, Eye, Edit2, Trash2,
+  Radio, Users, AlertTriangle, Zap, Plus, Eye, Edit2,
   X, Battery, Thermometer, Wind, Droplets,
   ShieldCheck, ShieldAlert, Activity, ChevronRight,
 } from 'lucide-react';
@@ -21,7 +21,6 @@ function Overlay({ onClick }: { onClick: () => void }) {
 function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [form, setForm] = useState({ name: '', email: '', department_id: '', phone: '', helmet_id: '' });
   const { mutate: createWorker } = useCreateWorker();
-  const { mutate: createHelmet } = useCreateHelmet();
   const { mutate: updateHelmet } = useUpdateHelmet();
   const { data: deptsRaw }   = useDepartments();
   const { data: helmetsRaw } = useHelmets();
@@ -53,7 +52,7 @@ function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void
           if (form.helmet_id) {
             updateHelmet({ id: form.helmet_id, data: { worker_id: newWorker.id } }, { onSuccess: reset, onError: reset });
           } else {
-            createHelmet({ worker_id: newWorker.id } as any, { onSuccess: reset, onError: reset });
+            reset();
           }
         },
         onError: (err: any) => {
@@ -111,9 +110,14 @@ function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void
               <label className="text-sm font-medium text-foreground">Assign Helmet</label>
               <select value={form.helmet_id} onChange={e => setForm(f => ({ ...f, helmet_id: e.target.value }))}
                 className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                <option value="">Auto-assign new helmet</option>
-                {unassignedHelmets.map(h => <option key={h.id} value={h.id}>{h.id}</option>)}
+                <option value="">No helmet (assign later)</option>
+                {unassignedHelmets.map(h => (
+                  <option key={h.id} value={h.id}>{h.helmet_code || h.id}{h.zone ? ` — ${h.zone}` : ''}</option>
+                ))}
               </select>
+              {unassignedHelmets.length === 0 && (
+                <p className="text-xs text-foreground-tertiary">No unassigned helmets available. Ask an admin to register one.</p>
+              )}
             </div>
           </form>
         </div>
@@ -393,7 +397,6 @@ export default function HelmetMonitoring() {
   const [editHelmet, setEditHelmet]       = useState<Helmet | null>(null);
 
   const { data: helmetsRaw, isLoading } = useHelmetsWithReadings();
-  const { mutate: deleteHelmet }        = useDeleteHelmet();
 
   const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
 
@@ -492,7 +495,6 @@ export default function HelmetMonitoring() {
                       <div className="flex items-center gap-2">
                         <button onClick={() => setViewHelmet(helmet)} className="p-1.5 hover:bg-background rounded transition-colors" title="View"><Eye className="w-4 h-4 text-primary" /></button>
                         <button onClick={() => setEditHelmet(helmet)} className="p-1.5 hover:bg-background rounded transition-colors" title="Edit"><Edit2 className="w-4 h-4 text-warning" /></button>
-                        <button onClick={() => deleteHelmet(helmet.id)} className="p-1.5 hover:bg-background rounded transition-colors" title="Delete"><Trash2 className="w-4 h-4 text-critical" /></button>
                       </div>
                     </td>
                   </tr>

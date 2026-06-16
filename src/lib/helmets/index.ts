@@ -5,8 +5,10 @@ export function mapHelmet(raw: any, latest?: any): Helmet {
   const reading = latest ?? raw.latest_reading;
   return {
     id: raw.id,
+    helmet_code: raw.helmet_code ?? '',
     worker_id: raw.worker_id ?? '',
     worker_name: raw.worker_name ?? raw.worker?.full_name ?? raw.worker?.name ?? raw.helmet_code ?? 'Unassigned',
+    zone: raw.zone,
     status: raw.status === 'active' ? 'active'
       : raw.status === 'critical' || raw.status === 'warning' ? 'alarm'
       : 'inactive',
