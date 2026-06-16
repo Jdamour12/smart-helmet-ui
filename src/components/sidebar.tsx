@@ -64,7 +64,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link href="/dashboard" onClick={onClose}>
             <Image
               src="/the_logo.png"
-              alt="SafeHelm Logo"
+              alt="Smart Helmet Logo"
               width={48}
               height={48}
               className="w-12 h-12 object-cover rounded-full"

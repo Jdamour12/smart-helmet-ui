@@ -1,6 +1,6 @@
 # SafeHelm — UI Documentation for AI Agents
 
-Complete reference for the frontend of the **SafeHelm Mining Safety Helmet Monitoring System**. This document covers every structural pattern, design decision, and convention an AI agent needs to build new screens, components, or features that are consistent with the existing UI.
+Complete reference for the frontend of the **Smart Safety Helmet Monitoring System**. This document covers every structural pattern, design decision, and convention an AI agent needs to build new screens, components, or features that are consistent with the existing UI.
 
 ---
 

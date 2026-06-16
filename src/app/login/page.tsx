@@ -78,7 +78,7 @@ export default function LoginPage() {
           <Link href="/">
             <Image
               src="/the_logo.png"
-              alt="SafeHelm"
+              alt="Smart Helmet Logo"
               width={72}
               height={72}
               className="w-18 h-18 object-cover rounded-full drop-shadow-lg"

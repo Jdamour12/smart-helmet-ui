@@ -54,7 +54,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           <Link href="/admin" onClick={onClose}>
             <Image
               src="/the_logo.png"
-              alt="SafeHelm Logo"
+              alt="Smart Helmet Logo"
               width={48}
               height={48}
               className="w-12 h-12 object-cover rounded-full"

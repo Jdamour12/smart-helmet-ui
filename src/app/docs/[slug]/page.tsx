@@ -4,7 +4,7 @@ const docContent = {
     content: `
       <h2>How the Smart Helmet System Works</h2>
       
-      <p>The SafeHelm system is a comprehensive IoT-based monitoring platform designed to keep miners safe by continuously tracking environmental conditions and worker status.</p>
+      <p>The Smart Helmet system is a comprehensive IoT-based monitoring platform designed to keep miners safe by continuously tracking environmental conditions and worker status.</p>
 
       <h3>System Architecture</h3>
       
@@ -142,7 +142,7 @@ const docContent = {
     content: `
       <h2>Understanding Alert Severity Levels</h2>
       
-      <p>SafeHelm uses three alert severity levels to help you prioritize responses to safety issues.</p>
+      <p>Smart Helmet uses three alert severity levels to help you prioritize responses to safety issues.</p>
 
       <h3>Critical Alerts</h3>
       
@@ -203,7 +203,7 @@ const docContent = {
     content: `
       <h2>Emergency Response Procedures</h2>
       
-      <p>Follow these procedures when critical alerts are triggered in the SafeHelm system.</p>
+      <p>Follow these procedures when critical alerts are triggered in the Smart Helmet system.</p>
 
       <h3>Critical Gas Alert (CO)</h3>
       
@@ -287,13 +287,13 @@ const docContent = {
   guide: {
     title: 'User Guide',
     content: `
-      <h2>How to Use the SafeHelm Dashboard</h2>
+      <h2>How to Use the Smart Helmet Dashboard</h2>
       
-      <p>This guide will help you navigate and use all features of the SafeHelm monitoring dashboard.</p>
+      <p>This guide will help you navigate and use all features of the Smart Helmet monitoring dashboard.</p>
 
       <h3>Logging In and Navigation</h3>
       
-      <p>When you access the SafeHelm system, you'll be presented with a modern interface with the following main sections:</p>
+      <p>When you access the Smart Helmet system, you'll be presented with a modern interface with the following main sections:</p>
       
       <ul>
         <li><strong>Sidebar Navigation:</strong> Quick access to Dashboard, Documentation, and Settings</li>

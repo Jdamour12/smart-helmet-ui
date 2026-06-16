@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Shield, BarChart3, Users, Zap } from 'lucide-react';
 
 export default function Home() {
@@ -10,10 +11,10 @@ export default function Home() {
       <nav className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-lg font-bold text-primary-foreground">SH</span>
+            <div className="w-10 h-10 rounded-full overflow-hidden">
+              <Image src="/the_logo.png" alt="Smart Helmet Logo" width={40} height={40} className="w-full h-full object-cover" priority />
             </div>
-            <span className="text-xl font-bold text-foreground">SafeHelm</span>
+            <span className="text-xl font-bold text-foreground">Smart Helmet</span>
           </div>
           <Link
             href="/login"
@@ -42,9 +43,6 @@ export default function Home() {
           >
             Get Started
           </Link>
-          <button className="px-8 py-3 border border-border text-foreground font-semibold rounded-lg hover:bg-background-secondary transition-colors">
-            Learn More
-          </button>
         </div>
       </section>
 
@@ -181,7 +179,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border bg-background-secondary py-12">
         <div className="max-w-7xl mx-auto px-6 text-center text-foreground-tertiary">
-          <p>© 2026 SafeHelm. All rights reserved. Mining Safety Matters.</p>
+          <p>© 2026 Smart Helmet. All rights reserved. Mining Safety Matters.</p>
         </div>
       </footer>
     </div>

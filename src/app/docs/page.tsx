@@ -13,7 +13,7 @@ export default function DocsPage() {
             <h1 className="text-4xl font-bold text-slate-900">Documentation</h1>
           </div>
           <p className="text-lg text-slate-600">
-            Learn how to use SafeHelm and understand all monitoring metrics and alert systems
+            Learn how to use Smart Helmet and understand all monitoring metrics and alert systems
           </p>
         </div>
 

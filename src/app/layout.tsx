@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'SafeHelm Dashboard - Mining Safety Monitoring',
+  title: 'Smart Helmet Dashboard - Mining Safety Monitoring',
   description: 'Real-time monitoring dashboard for smart safety helmets in mining operations.',
   generator: 'v0.app',
   icons: {
