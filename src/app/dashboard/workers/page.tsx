@@ -6,7 +6,7 @@ import {
   Plus, Eye, Edit2, Trash2, X, Mail, Phone, Briefcase,
   Users, UserCheck, AlertCircle, HardHat,
 } from 'lucide-react';
-import { useWorkers, useCreateWorker, useUpdateWorker, useDeleteWorker, useWorkerHelmets } from '@/hooks/use-workers';
+import { useWorkers, useCreateWorker, useUpdateWorker, useDeleteWorker } from '@/hooks/use-workers';
 import { useHelmets, useUpdateHelmet } from '@/hooks/use-helmets';
 import { useDepartments } from '@/hooks/use-departments';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -311,11 +311,22 @@ function EditWorkerDrawer({
 }) {
   const { mutate: updateWorker, isPending: isSaving } = useUpdateWorker();
   const { mutate: updateHelmet } = useUpdateHelmet();
-  const { data: workerHelmetsRaw } = useWorkerHelmets(worker?.id ?? '');
-  const { data: unassignedRaw }    = useHelmets({ assigned: 'false' });
+  // Same call the helmets page uses — returns all supervisor-scoped assigned helmets
+  const { data: assignedRaw }    = useHelmets();
+  // Also grab any genuinely unassigned helmets in the system
+  const { data: unassignedRaw }  = useHelmets({ assigned: 'false' });
 
-  const currentHelmet    = (workerHelmetsRaw as Helmet[] | undefined)?.[0];
+  const assignedHelmets   = (assignedRaw   as Helmet[] | undefined) ?? [];
   const unassignedHelmets = (unassignedRaw as Helmet[] | undefined) ?? [];
+
+  // Current helmet for this specific worker (matched by worker_id)
+  const currentHelmet = assignedHelmets.find(h => h.worker_id === worker?.id);
+
+  // All selectable helmets: supervisor's full list + any unassigned (deduplicated)
+  const selectableHelmets = [
+    ...assignedHelmets,
+    ...unassignedHelmets.filter(u => !assignedHelmets.some(a => a.id === u.id)),
+  ];
 
   const [form, setForm] = useState({ name: '', phone: '', department: '', status: 'active' as 'active' | 'inactive', helmetId: '' });
 
@@ -332,8 +343,6 @@ function EditWorkerDrawer({
   }, [worker?.id, currentHelmet?.id]);
 
   if (!worker) return null;
-
-  const selectableHelmets = currentHelmet ? [currentHelmet, ...unassignedHelmets] : unassignedHelmets;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
