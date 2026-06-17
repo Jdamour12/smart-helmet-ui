@@ -25,7 +25,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { mutate: readAll } = useReadAllNotifications();
   const { mutate: readOne } = useReadNotification();
   const notificationList = notifications ?? [];
-  const unreadCount = unread?.count ?? 0;
+  const unreadCount = (unread?.count ?? notificationList.filter(n => !n.read).length);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -63,10 +63,14 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
       <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="relative p-2 hover:bg-background-tertiary rounded-lg transition-colors">
+            <button className="relative p-2 hover:bg-background-tertiary rounded-lg transition-colors overflow-visible">
               <Bell className="w-5 h-5 text-foreground-secondary" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-critical rounded-full" />
+                <span
+                  className="pointer-events-none absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-[5px] rounded-full bg-red-500 text-white text-[10px] font-bold leading-none ring-2 ring-background-secondary"
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
               )}
             </button>
           </DropdownMenuTrigger>

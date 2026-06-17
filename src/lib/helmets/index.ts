@@ -11,7 +11,7 @@ export function mapHelmet(raw: any, latest?: any): Helmet {
     zone: raw.zone,
     status: raw.status === 'active' ? 'active'
       : raw.status === 'critical' || raw.status === 'warning' ? 'alarm'
-      : 'inactive',
+        : 'inactive',
     co: reading?.co_ppm ?? raw.co ?? 0,
     ch4: reading?.ch4_percent ?? raw.ch4 ?? 0,
     temperature: reading?.temperature ?? raw.temperature ?? 0,
@@ -133,7 +133,7 @@ export function update(id: string, data: Partial<Helmet>) {
   if (data.status !== undefined) {
     body.status = data.status === 'alarm' ? 'critical'
       : data.status === 'active' ? 'active'
-      : 'inactive';
+        : 'inactive';
   }
   return http<any>(`/helmets/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
 }
