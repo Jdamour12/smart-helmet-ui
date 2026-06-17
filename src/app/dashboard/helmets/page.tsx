@@ -1,133 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { useHelmetsWithReadings, useHelmets, useUpdateHelmet } from '@/hooks/use-helmets';
-import { useCreateWorker } from '@/hooks/use-workers';
-import { useDepartments } from '@/hooks/use-departments';
+import { useHelmetsWithReadings, useUpdateHelmet } from '@/hooks/use-helmets';
 import { useHelmetLive } from '@/hooks/use-websocket-helmets';
-import type { Helmet, Department } from '@/lib/types';
+import type { Helmet } from '@/lib/types';
 import {
-  Radio, Users, AlertTriangle, Zap, Plus, Eye, Edit2,
+  Radio, Users, AlertTriangle, Zap, Eye, Edit2,
   X, Battery, Thermometer, Wind, Droplets,
   ShieldCheck, ShieldAlert, Activity, ChevronRight,
 } from 'lucide-react';
 
 function Overlay({ onClick }: { onClick: () => void }) {
   return <div className="fixed inset-0 top-[69px] bg-black/20 z-40 backdrop-blur-[1px]" onClick={onClick} />;
-}
-
-/* ─── Add Worker drawer ──────────────────────────────────── */
-function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [form, setForm] = useState({ name: '', email: '', department_id: '', phone: '', helmet_id: '' });
-  const { mutate: createWorker } = useCreateWorker();
-  const { mutate: updateHelmet } = useUpdateHelmet();
-  const { data: deptsRaw }   = useDepartments();
-  const { data: helmetsRaw } = useHelmets();
-  const deptList          = (deptsRaw   as Department[] | undefined) ?? [];
-  const helmetList        = (helmetsRaw as Helmet[]     | undefined) ?? [];
-  const unassignedHelmets = helmetList.filter(h => !h.worker_id);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const selectedDept = deptList.find(d => d.id === form.department_id);
-    // supervisor_id is intentionally omitted — the backend auto-assigns
-    // the current logged-in supervisor's own Supervisor.id (it does NOT
-    // match the User.id stored in localStorage).
-    createWorker(
-      {
-        name: form.name,
-        email: form.email.trim() || undefined,
-        department: selectedDept?.name,
-        department_id: form.department_id || undefined,
-        phone: form.phone,
-      } as any,
-      {
-        onSuccess: (newWorker: any) => {
-          const reset = () => {
-            setForm({ name: '', email: '', department_id: '', phone: '', helmet_id: '' });
-            onClose();
-            toast.success('Worker created successfully');
-          };
-          if (form.helmet_id) {
-            updateHelmet({ id: form.helmet_id, data: { worker_id: newWorker.id } }, { onSuccess: reset, onError: reset });
-          } else {
-            reset();
-          }
-        },
-        onError: (err: any) => {
-          toast.error(err?.message ?? 'Failed to add worker. Please try again.');
-        },
-      },
-    );
-  };
-
-  if (!open) return null;
-
-  return (
-    <>
-      <Overlay onClick={onClose} />
-      <div className="fixed top-[69px] right-4 bottom-4 w-[420px] z-50 flex flex-col bg-background-secondary border border-border rounded-2xl shadow-2xl animate-in slide-in-from-right duration-300 ease-out">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">Add New Worker</h2>
-            <p className="text-xs text-foreground-tertiary mt-0.5">Register a worker & assign a helmet</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-background-tertiary rounded-lg transition-colors">
-            <X className="w-4 h-4 text-foreground-secondary" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          <form id="add-worker-form" onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Worker Name <span className="text-critical">*</span></label>
-              <input required type="text" placeholder="e.g. James Carter" value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Email Address</label>
-              <input type="email" placeholder="worker@mining.com" value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-              <p className="text-xs text-foreground-tertiary">Optional, but required for the worker to receive a login and the welcome email.</p>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Department</label>
-              <select value={form.department_id} onChange={e => setForm(f => ({ ...f, department_id: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                <option value="">No department</option>
-                {deptList.map(d => <option key={d.id} value={d.id}>{d.name}{d.location ? ` — ${d.location}` : ''}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Phone Number</label>
-              <input type="tel" placeholder="+250 7XX XXX XXX" value={form.phone}
-                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-tertiary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Assign Helmet</label>
-              <select value={form.helmet_id} onChange={e => setForm(f => ({ ...f, helmet_id: e.target.value }))}
-                className="w-full px-3 py-2.5 text-sm bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
-                <option value="">No helmet (assign later)</option>
-                {unassignedHelmets.map(h => (
-                  <option key={h.id} value={h.id}>{h.helmet_code || h.id}{h.zone ? ` — ${h.zone}` : ''}</option>
-                ))}
-              </select>
-              {unassignedHelmets.length === 0 && (
-                <p className="text-xs text-foreground-tertiary">No unassigned helmets available. Ask an admin to register one.</p>
-              )}
-            </div>
-          </form>
-        </div>
-        <div className="px-6 py-4 border-t border-border flex items-center gap-3 flex-shrink-0">
-          <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 text-sm font-medium text-foreground-secondary border border-border rounded-lg hover:bg-background-tertiary transition-colors">Cancel</button>
-          <button type="submit" form="add-worker-form" className="flex-1 px-4 py-2.5 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:bg-primary-dark transition-colors">Add Worker</button>
-        </div>
-      </div>
-    </>
-  );
 }
 
 /* ─── View Worker drawer with live WebSocket data ────────── */
@@ -392,18 +276,18 @@ function EditWorkerDrawer({ helmet, onClose }: { helmet: Helmet | null; onClose:
 
 /* ─── Main Page ──────────────────────────────────────────── */
 export default function HelmetMonitoring() {
-  const [addWorkerOpen, setAddWorkerOpen] = useState(false);
-  const [viewHelmet, setViewHelmet]       = useState<Helmet | null>(null);
-  const [editHelmet, setEditHelmet]       = useState<Helmet | null>(null);
+  const [viewHelmet, setViewHelmet] = useState<Helmet | null>(null);
+  const [editHelmet, setEditHelmet] = useState<Helmet | null>(null);
 
   const { data: helmetsRaw, isLoading } = useHelmetsWithReadings();
 
-  const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
+  const helmetList    = (helmetsRaw as Helmet[] | undefined) ?? [];
+  const displayHelmets = helmetList.filter(h => !!h.worker_id);
 
-  const activeCount   = helmetList.filter(h => h.status === 'active').length;
-  const criticalCount = helmetList.filter(h => h.status === 'alarm').length;
-  const avgBattery    = helmetList.length ? (helmetList.reduce((s, h) => s + (h.battery ?? 0), 0) / helmetList.length).toFixed(1) : '0';
-  const wearingCount  = helmetList.filter(h => h.helmet_wear).length;
+  const activeCount   = displayHelmets.filter(h => h.status === 'active').length;
+  const criticalCount = displayHelmets.filter(h => h.status === 'alarm').length;
+  const avgBattery    = displayHelmets.length ? (displayHelmets.reduce((s, h) => s + (h.battery ?? 0), 0) / displayHelmets.length).toFixed(1) : '0';
+  const wearingCount  = displayHelmets.filter(h => h.helmet_wear).length;
 
   return (
     <>
@@ -411,16 +295,13 @@ export default function HelmetMonitoring() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold text-foreground">Real-time Helmet Monitoring</h2>
-            <p className="text-foreground-secondary mt-1">Live sensor data from all active helmets</p>
+            <p className="text-foreground-secondary mt-1">Live sensor data from assigned helmets</p>
           </div>
-          <button onClick={() => setAddWorkerOpen(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors font-medium">
-            <Plus className="w-5 h-5" /> Add Worker
-          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Active Helmets',    value: activeCount,      sub: `of ${helmetList.length} total`, color: 'primary',  Icon: Radio },
+            { label: 'Active Helmets',    value: activeCount,      sub: `of ${displayHelmets.length} assigned`, color: 'primary',  Icon: Radio },
             { label: 'Helmet Compliance', value: wearingCount,     sub: 'Workers wearing helmets',        color: 'success',  Icon: Users },
             { label: 'Critical Status',   value: criticalCount,    sub: 'Requiring attention',            color: 'critical', Icon: AlertTriangle },
             { label: 'Avg Battery',       value: `${avgBattery}%`, sub: 'Fleet average',                 color: 'warning',  Icon: Zap },
@@ -442,7 +323,7 @@ export default function HelmetMonitoring() {
           <h3 className="text-lg font-semibold text-foreground mb-4">Helmet Details</h3>
           {isLoading ? (
             <p className="text-foreground-secondary text-sm">Loading helmets...</p>
-          ) : helmetList.length === 0 ? (
+          ) : displayHelmets.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
                 <Radio className="w-8 h-8 text-primary" />
@@ -460,7 +341,7 @@ export default function HelmetMonitoring() {
                 </tr>
               </thead>
               <tbody>
-                {helmetList.map((helmet) => (
+                {displayHelmets.map((helmet) => (
                   <tr key={helmet.id} className="border-b border-border/50 hover:bg-background/50 transition-colors">
                     <td className="px-4 py-4 text-foreground text-sm font-medium">{helmet.worker_name || 'Unassigned'}</td>
                     <td className="px-4 py-4">
@@ -505,7 +386,6 @@ export default function HelmetMonitoring() {
         </div>
       </div>
 
-      <AddWorkerDrawer open={addWorkerOpen} onClose={() => setAddWorkerOpen(false)} />
       <ViewWorkerDrawer helmet={viewHelmet} onClose={() => setViewHelmet(null)} onEdit={h => { setViewHelmet(null); setEditHelmet(h); }} />
       <EditWorkerDrawer helmet={editHelmet} onClose={() => setEditHelmet(null)} />
     </>

@@ -6,7 +6,7 @@ import {
   Plus, Eye, Edit2, Trash2, X, Mail, Phone, Briefcase,
   Users, UserCheck, AlertCircle, HardHat,
 } from 'lucide-react';
-import { useWorkers, useCreateWorker, useUpdateWorker, useDeleteWorker } from '@/hooks/use-workers';
+import { useWorkers, useCreateWorker, useUpdateWorker, useDeleteWorker, useWorkerHelmets } from '@/hooks/use-workers';
 import { useHelmets, useUpdateHelmet } from '@/hooks/use-helmets';
 import { useDepartments } from '@/hooks/use-departments';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -27,11 +27,10 @@ function AddWorkerDrawer({ open, onClose }: { open: boolean; onClose: () => void
   const { mutateAsync: createWorkerAsync, isPending } = useCreateWorker();
   const { mutateAsync: updateHelmetAsync }            = useUpdateHelmet();
   const { data: deptsRaw }                  = useDepartments();
-  const { data: helmetsRaw }                = useHelmets();
+  const { data: helmetsRaw }                = useHelmets({ assigned: 'false' });
 
   const deptList          = (deptsRaw   as Department[] | undefined) ?? [];
-  const helmetList        = (helmetsRaw as Helmet[]     | undefined) ?? [];
-  const unassignedHelmets = helmetList.filter(h => !h.worker_id);
+  const unassignedHelmets = (helmetsRaw as Helmet[]     | undefined) ?? [];
 
   // Reset form when drawer opens
   useEffect(() => {
@@ -305,15 +304,19 @@ function ViewWorkerDrawer({
 
 /* ─── Edit Worker Drawer (incl. helmet reassignment) ──────── */
 function EditWorkerDrawer({
-  worker, currentHelmet, unassignedHelmets, onClose,
+  worker, onClose,
 }: {
   worker: Worker | null;
-  currentHelmet: Helmet | undefined;
-  unassignedHelmets: Helmet[];
   onClose: () => void;
 }) {
   const { mutate: updateWorker, isPending: isSaving } = useUpdateWorker();
   const { mutate: updateHelmet } = useUpdateHelmet();
+  const { data: workerHelmetsRaw } = useWorkerHelmets(worker?.id ?? '');
+  const { data: unassignedRaw }    = useHelmets({ assigned: 'false' });
+
+  const currentHelmet    = (workerHelmetsRaw as Helmet[] | undefined)?.[0];
+  const unassignedHelmets = (unassignedRaw as Helmet[] | undefined) ?? [];
+
   const [form, setForm] = useState({ name: '', phone: '', department: '', status: 'active' as 'active' | 'inactive', helmetId: '' });
 
   useEffect(() => {
@@ -458,7 +461,6 @@ export default function SupervisorWorkersPage() {
 
   const workerList = (workersRaw as Worker[] | undefined) ?? [];
   const helmetList = (helmetsRaw as Helmet[] | undefined) ?? [];
-  const unassignedHelmets = helmetList.filter(h => !h.worker_id);
 
   const myWorkers     = workerList;
   const activeCount   = myWorkers.filter(w => w.status === 'active').length;
@@ -602,8 +604,6 @@ export default function SupervisorWorkersPage() {
       />
       <EditWorkerDrawer
         worker={editWorker}
-        currentHelmet={editWorker ? getHelmet(editWorker.id) : undefined}
-        unassignedHelmets={unassignedHelmets}
         onClose={() => setEditWorker(null)}
       />
       <ConfirmDialog

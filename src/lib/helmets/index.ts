@@ -7,7 +7,7 @@ export function mapHelmet(raw: any, latest?: any): Helmet {
     id: raw.id,
     helmet_code: raw.helmet_code ?? '',
     worker_id: raw.worker_id ?? '',
-    worker_name: raw.worker_name ?? raw.worker?.full_name ?? raw.worker?.name ?? raw.helmet_code ?? 'Unassigned',
+    worker_name: raw.worker_name ?? raw.worker?.full_name ?? raw.worker?.name ?? 'Unassigned',
     zone: raw.zone,
     status: raw.status === 'active' ? 'active'
       : raw.status === 'critical' || raw.status === 'warning' ? 'alarm'
