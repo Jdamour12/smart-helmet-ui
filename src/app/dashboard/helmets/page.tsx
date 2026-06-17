@@ -139,26 +139,6 @@ function ViewWorkerDrawer({ helmet, onClose, onEdit }: { helmet: Helmet | null; 
               </div>
             </div>
 
-            {reading?.ai_model_votes && (
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {Object.entries({
-                  'Isolation Forest': reading.ai_model_votes.isolation_forest,
-                  'Random Forest':    reading.ai_model_votes.random_forest,
-                  'LSTM':             reading.ai_model_votes.lstm,
-                  'SVM':              reading.ai_model_votes.svm,
-                }).map(([model, vote]) => (
-                  <div key={model} className="bg-background rounded-lg p-3 border border-border">
-                    <p className="text-xs text-foreground-tertiary">{model}</p>
-                    <p className={`text-sm font-semibold mt-1 ${
-                      vote === 'danger' ? 'text-critical' :
-                      vote === 'safe'   ? 'text-success'  : 'text-foreground-tertiary'
-                    }`}>
-                      {vote?.toUpperCase() ?? '—'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
           </section>
 
           {/* Safety Status */}
